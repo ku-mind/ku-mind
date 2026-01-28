@@ -1,4 +1,4 @@
-# KU Mind & Burnout Early Alert
+# KU Mind
 
 Anonymous AI-based early screening and support system  
 for stress and burnout among Kasetsart University students.
