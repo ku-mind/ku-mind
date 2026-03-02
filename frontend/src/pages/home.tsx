@@ -7,8 +7,20 @@ import {
   ArrowRight,
   CheckCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  const handleStartChat = () => {
+    const isLoggedIn = localStorage.getItem("ku_mind_user") !== null;
+    if (isLoggedIn) {
+      navigate("/chat");
+    } else {
+      navigate("/login");
+    }
+  };
+
   const features = [
     {
       icon: Clock,
@@ -58,7 +70,10 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <button className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-200 hover:shadow-xl">
+          <button
+            onClick={handleStartChat}
+            className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-200 hover:shadow-xl"
+          >
             เริ่มพูดคุย
           </button>
         </div>
@@ -86,7 +101,10 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="group px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 transition-all shadow-xl shadow-emerald-200 hover:shadow-2xl flex items-center gap-2">
+            <button
+              onClick={handleStartChat}
+              className="group px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 transition-all shadow-xl shadow-emerald-200 hover:shadow-2xl flex items-center gap-2"
+            >
               <MessageCircle className="w-5 h-5" />
               <span className="font-medium">เริ่มการสนทนา</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -166,7 +184,10 @@ export default function Home() {
             <p className="text-emerald-50 text-lg mb-8">
               ก้าวแรกสู่สุขภาพจิตที่ดีขึ้น เริ่มต้นด้วยการพูดคุยกับเราวันนี้
             </p>
-            <button className="px-8 py-4 bg-white text-emerald-600 rounded-full hover:bg-emerald-50 transition-all shadow-xl font-medium inline-flex items-center gap-2 group">
+            <button
+              onClick={handleStartChat}
+              className="px-8 py-4 bg-white text-emerald-600 rounded-full hover:bg-emerald-50 transition-all shadow-xl font-medium inline-flex items-center gap-2 group"
+            >
               <MessageCircle className="w-5 h-5" />
               <span>เริ่มการสนทนาตอนนี้</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
