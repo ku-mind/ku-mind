@@ -203,7 +203,7 @@ export default function Chat() {
 
           <div className="hidden items-center gap-3 rounded-full border border-emerald-100 bg-white/70 px-4 py-2 text-sm text-emerald-700 lg:flex">
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            เซสชันปลอดภัยและเป็นส่วนตัว
+            พื้นที่ปลอดภัยและเป็นส่วนตัว
           </div>
 
           <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ export default function Chat() {
               <Sparkles className="h-3.5 w-3.5" />
               Session Insight
             </div>
-            <h2 className="mt-4 text-2xl font-black leading-tight text-emerald-900">คุยต่อเนื่อง\nแบบเข้าใจคุณ</h2>
+            <h2 className="mt-4 text-2xl font-black leading-tight text-emerald-900">คุยต่อเนื่อง<br />แบบเข้าใจคุณ</h2>
           </div>
 
           <div className="space-y-3">
@@ -264,7 +264,7 @@ export default function Chat() {
           <div className="flex items-center justify-between border-b border-emerald-100/70 px-4 py-3 md:px-5">
             <div>
               <h3 className="text-base font-bold text-emerald-900 md:text-lg">พื้นที่สนทนาแบบไม่ตัดสิน</h3>
-              <p className="text-xs text-emerald-600 md:text-sm">เล่าได้เต็มที่ เราจะช่วยคุณค่อยๆ คลี่ความคิด</p>
+              <p className="text-xs text-emerald-600 md:text-sm">เล่าได้เต็มที่ เราจะช่วยคุณค่อยๆ จัดการความคิด</p>
             </div>
             <div className="hidden items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 md:inline-flex">
               <MessageCircle className="h-3.5 w-3.5" />

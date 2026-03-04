@@ -57,12 +57,12 @@ export default function Home() {
       description: "พิมพ์สั้นหรือยาวก็ได้ เริ่มจากสิ่งที่อยู่ในใจตอนนี้",
     },
     {
-      title: "รับการสะท้อนอย่างอ่อนโยน",
+      title: "AI ช่วยให้เข้าใจตัวเองมากขึ้น",
       description: "AI ช่วยสรุปความคิดและมุมมอง เพื่อให้เห็นภาพชัดขึ้น",
     },
     {
       title: "ออกแบบแผนเล็กๆ ของวันนี้",
-      description: "จบด้วยแนวทางที่ทำได้จริงในชีวิตประจำวันของคุณ",
+      description: "และรับคำแนะนำที่นำไปใช้ได้จริง",
     },
   ];
 
@@ -123,14 +123,16 @@ export default function Home() {
 
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-emerald-700">
             พื้นที่ปลอดภัยสำหรับการแชร์ความรู้สึก ความคิด และความกังวลของคุณ
+          <br />
             AI ที่ออกแบบมาเพื่อรับฟังและให้คำปรึกษาด้วยความเห็นอกเห็นใจ
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3 text-sm text-emerald-700">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 shadow-sm">
-              <Users className="h-4 w-4 text-emerald-500" />
-              ผู้ใช้งานใหม่ทุกวัน
-            </div>
+            
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 shadow-sm">
+            <Heart className="h-4 w-4 text-emerald-500" />
+            พร้อมรับฟังทุกเวลา
+          </div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 shadow-sm">
               <Shield className="h-4 w-4 text-emerald-500" />
               เน้นความเป็นส่วนตัว
@@ -162,12 +164,13 @@ export default function Home() {
             </div>
 
             <div className="space-y-3">
-              <div className="max-w-[88%] rounded-2xl rounded-bl-md bg-emerald-50 p-3 text-sm text-emerald-800">
+              <div className="ml-auto max-w-[60%] rounded-2xl rounded-br-md bg-emerald-50 p-3 text-sm text-emerald-800">
                 วันนี้รู้สึกเครียดมาก ไม่ค่อยมีแรงทำอะไรเลย
               </div>
-              <div className="ml-auto max-w-[92%] rounded-2xl rounded-br-md bg-teal-500 p-3 text-sm text-white">
+              <div className="max-w-[95%] rounded-2xl rounded-bl-md bg-teal-500 p-3 text-sm text-white">
                 ขอบคุณที่เล่าให้ฟังนะ คุณอยากเริ่มจากเรื่องที่กังวลที่สุดตอนนี้ก่อนดีไหม
               </div>
+              
             </div>
 
             <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
@@ -179,7 +182,7 @@ export default function Home() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  ตั้งเป้าหมายเล็กๆ เพื่อค่อยๆ คืนสมดุล
+                  ตั้งเป้าหมายเล็กๆ ค่อยๆ ฟื้นฟูตัวเอง
                 </li>
               </ul>
             </div>
@@ -188,12 +191,12 @@ export default function Home() {
       </section>
 
       <section className="pb-14">
-        <div className="mx-auto max-w-3xl px-4 md:px-6">
-          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 md:p-6">
+        <div className="mx-auto px-4 md:px-6 flex justify-center">
+          <div className="inline-block rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 md:p-6">
             <p className="text-sm leading-relaxed text-amber-800">
               <strong>ข้อควรระวัง:</strong> ระบบนี้เป็นเพียงเครื่องมือให้คำแนะนำเบื้องต้น
-              ไม่สามารถทดแทนการรักษาจากนักจิตวิทยาหรือจิตแพทย์มืออาชีพได้ หากมีอาการรุนแรง
-              โปรดปรึกษาผู้เชี่ยวชาญโดยตรง
+              ไม่สามารถทดแทนการรักษาจากนักจิตวิทยาหรือจิตแพทย์มืออาชีพได้
+              หากมีอาการรุนแรง โปรดปรึกษาผู้เชี่ยวชาญโดยตรง
             </p>
           </div>
         </div>
