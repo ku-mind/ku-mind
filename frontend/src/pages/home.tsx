@@ -75,7 +75,7 @@ export default function Home() {
       </div>
 
       <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-6">
+        <div className="flex w-full items-center justify-between px-4 py-4 md:px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-md shadow-emerald-200">
               <Heart className="h-5 w-5 text-white" fill="white" />
