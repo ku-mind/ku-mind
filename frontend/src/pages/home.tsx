@@ -8,8 +8,15 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  const goToLogin = () => {
+    navigate("/login");
+  };
+
   const features = [
     {
       icon: Clock,
@@ -93,7 +100,10 @@ export default function Home() {
             </a>
           </nav>
 
-          <button className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl">
+          <button
+            onClick={goToLogin}
+            className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl"
+          >
             เริ่มพูดคุย
           </button>
         </div>
@@ -128,7 +138,10 @@ export default function Home() {
           </div>
 
           <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
-            <button className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-4 text-white shadow-xl shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-2xl">
+            <button
+              onClick={goToLogin}
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-4 text-white shadow-xl shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-2xl"
+            >
               <MessageCircle className="h-5 w-5" />
               <span className="font-semibold">เริ่มการสนทนา</span>
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -277,7 +290,10 @@ export default function Home() {
             <p className="mx-auto mt-4 max-w-2xl text-lg text-emerald-50">
               ก้าวแรกสู่สุขภาพจิตที่ดีขึ้น เริ่มต้นด้วยการพูดคุยกับเราวันนี้
             </p>
-            <button className="group mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-emerald-600 shadow-xl transition-all hover:bg-emerald-50">
+            <button
+              onClick={goToLogin}
+              className="group mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-emerald-600 shadow-xl transition-all hover:bg-emerald-50"
+            >
               <MessageCircle className="h-5 w-5" />
               <span>เริ่มการสนทนาตอนนี้</span>
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
