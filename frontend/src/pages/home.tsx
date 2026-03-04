@@ -1,26 +1,15 @@
 import {
+  ArrowRight,
+  CheckCircle,
+  Clock,
   Heart,
   MessageCircle,
   Shield,
-  Clock,
   Sparkles,
-  ArrowRight,
-  CheckCircle,
+  Users,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 export default function Home() {
-  const navigate = useNavigate();
-
-  const handleStartChat = () => {
-    const isLoggedIn = localStorage.getItem("ku_mind_user") !== null;
-    if (isLoggedIn) {
-      navigate("/chat");
-    } else {
-      navigate("/login");
-    }
-  };
-
   const features = [
     {
       icon: Clock,
@@ -51,166 +40,267 @@ export default function Home() {
     "ครอบครัว",
     "การพัฒนาตัวเอง",
     "ความโดดเดี่ยว",
+    "ความมั่นใจในตัวเอง",
+    "การนอนหลับ",
+  ];
+
+  const steps = [
+    {
+      title: "เล่าสิ่งที่กำลังรู้สึก",
+      description: "พิมพ์สั้นหรือยาวก็ได้ เริ่มจากสิ่งที่อยู่ในใจตอนนี้",
+    },
+    {
+      title: "รับการสะท้อนอย่างอ่อนโยน",
+      description: "AI ช่วยสรุปความคิดและมุมมอง เพื่อให้เห็นภาพชัดขึ้น",
+    },
+    {
+      title: "ออกแบบแผนเล็กๆ ของวันนี้",
+      description: "จบด้วยแนวทางที่ทำได้จริงในชีวิตประจำวันของคุณ",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-50">
-        <div className="w-full px-4 md:px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 text-emerald-900">
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute -left-20 -top-16 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl" />
+        <div className="absolute right-0 top-40 h-80 w-80 rounded-full bg-cyan-200/35 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-teal-200/30 blur-3xl" />
+      </div>
+
+      <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" fill="white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-md shadow-emerald-200">
+              <Heart className="h-5 w-5 text-white" fill="white" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-wide leading-none bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-500 bg-clip-text text-transparent">
+              <h1 className="bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-500 bg-clip-text text-2xl font-black leading-none tracking-wide text-transparent">
                 Ku mind
               </h1>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-500 mt-1">
-                Mental Wellness
-              </p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-emerald-500">Mental Wellness</p>
             </div>
           </div>
-          <button
-            onClick={handleStartChat}
-            className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-200 hover:shadow-xl"
-          >
+
+          <nav className="hidden items-center gap-7 text-sm font-medium text-emerald-700/90 md:flex">
+            <a href="#features" className="transition-colors hover:text-emerald-900">
+              จุดเด่น
+            </a>
+            <a href="#topics" className="transition-colors hover:text-emerald-900">
+              หัวข้อ
+            </a>
+            <a href="#start" className="transition-colors hover:text-emerald-900">
+              เริ่มต้น
+            </a>
+          </nav>
+
+          <button className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-xl">
             เริ่มพูดคุย
           </button>
         </div>
       </header>
 
-      <section className="max-w-7xl mx-auto px-6 py-20 md:py-32">
-        <div className="text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full mb-6">
-            <Sparkles className="w-4 h-4" />
-            <span className="text-sm font-medium">ที่ปรึกษาด้านจิตใจที่พร้อมรับฟังคุณ</span>
+      <section className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-16 md:grid-cols-[1.1fr_0.9fr] md:px-6 md:py-24">
+        <div>
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/80 px-4 py-2 text-sm font-medium text-emerald-700">
+            <Sparkles className="h-4 w-4" />
+            ที่ปรึกษาด้านจิตใจที่พร้อมรับฟังคุณ
           </div>
 
-          <h2 className="text-5xl md:text-6xl font-bold text-emerald-900 mb-6 leading-tight">
+          <h2 className="text-4xl font-black leading-tight md:text-6xl">
             คุณไม่ได้
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">
-              {" "}
-              อยู่คนเดียว
-            </span>
+            <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent"> อยู่คนเดียว</span>
           </h2>
 
-          <p className="text-xl text-emerald-700 mb-10 leading-relaxed">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-emerald-700">
             พื้นที่ปลอดภัยสำหรับการแชร์ความรู้สึก ความคิด และความกังวลของคุณ
-            <br />
             AI ที่ออกแบบมาเพื่อรับฟังและให้คำปรึกษาด้วยความเห็นอกเห็นใจ
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button
-              onClick={handleStartChat}
-              className="group px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full hover:from-emerald-600 hover:to-teal-600 transition-all shadow-xl shadow-emerald-200 hover:shadow-2xl flex items-center gap-2"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span className="font-medium">เริ่มการสนทนา</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          <div className="mt-8 flex flex-wrap gap-3 text-sm text-emerald-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 shadow-sm">
+              <Users className="h-4 w-4 text-emerald-500" />
+              ผู้ใช้งานใหม่ทุกวัน
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 shadow-sm">
+              <Shield className="h-4 w-4 text-emerald-500" />
+              เน้นความเป็นส่วนตัว
+            </div>
+          </div>
+
+          <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <button className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-4 text-white shadow-xl shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-2xl">
+              <MessageCircle className="h-5 w-5" />
+              <span className="font-semibold">เริ่มการสนทนา</span>
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </button>
 
-            <button className="px-8 py-4 bg-white text-emerald-700 border-2 border-emerald-200 rounded-full hover:bg-emerald-50 transition-all">
+            <button className="rounded-full border-2 border-emerald-200 bg-white px-8 py-4 font-semibold text-emerald-700 transition-all hover:bg-emerald-50">
               เรียนรู้เพิ่มเติม
             </button>
           </div>
+        </div>
 
-          <div className="mt-12 p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl max-w-2xl mx-auto">
-            <p className="text-sm text-amber-800">
+        <div className="relative">
+          <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-r from-emerald-200/70 to-cyan-200/60 blur-xl" />
+          <div className="relative rounded-[2rem] border border-emerald-100 bg-white/90 p-6 shadow-2xl shadow-emerald-100 backdrop-blur md:p-7">
+            <div className="mb-5 flex items-center justify-between">
+              <p className="text-sm font-semibold text-emerald-700">ตัวอย่างการสนทนา</p>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Online</span>
+            </div>
+
+            <div className="space-y-3">
+              <div className="max-w-[88%] rounded-2xl rounded-bl-md bg-emerald-50 p-3 text-sm text-emerald-800">
+                วันนี้รู้สึกเครียดมาก ไม่ค่อยมีแรงทำอะไรเลย
+              </div>
+              <div className="ml-auto max-w-[92%] rounded-2xl rounded-br-md bg-teal-500 p-3 text-sm text-white">
+                ขอบคุณที่เล่าให้ฟังนะ คุณอยากเริ่มจากเรื่องที่กังวลที่สุดตอนนี้ก่อนดีไหม
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">Quick Summary</p>
+              <ul className="mt-2 space-y-2 text-sm text-emerald-700">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-500" />
+                  กำลังรู้สึกกดดันจากงานและพักผ่อนไม่พอ
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-500" />
+                  ตั้งเป้าหมายเล็กๆ เพื่อค่อยๆ คืนสมดุล
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-14">
+        <div className="mx-auto max-w-3xl px-4 md:px-6">
+          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 md:p-6">
+            <p className="text-sm leading-relaxed text-amber-800">
               <strong>ข้อควรระวัง:</strong> ระบบนี้เป็นเพียงเครื่องมือให้คำแนะนำเบื้องต้น
-              ไม่สามารถทดแทนการรักษาจากนักจิตวิทยาหรือจิตแพทย์มืออาชีพได้
-              หากมีอาการรุนแรง โปรดปรึกษาผู้เชี่ยวชาญโดยตรง
+              ไม่สามารถทดแทนการรักษาจากนักจิตวิทยาหรือจิตแพทย์มืออาชีพได้ หากมีอาการรุนแรง
+              โปรดปรึกษาผู้เชี่ยวชาญโดยตรง
             </p>
           </div>
         </div>
       </section>
 
-      <section className="bg-white/50 backdrop-blur-sm py-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl md:text-4xl font-bold text-emerald-900 mb-4">ทำไมต้องเลือกเรา</h3>
-            <p className="text-emerald-600 text-lg">
-              เราออกแบบมาเพื่อให้คุณรู้สึกปลอดภัยและได้รับการดูแลที่ดีที่สุด
-            </p>
+      <section
+        id="features"
+        className="relative overflow-hidden border-y border-emerald-100/70 bg-gradient-to-b from-white/75 via-emerald-50/70 to-cyan-50/55 py-20 backdrop-blur-sm"
+      >
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-14 top-10 h-40 w-40 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="absolute right-0 top-24 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
+        </div>
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="mb-14 text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600 shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
+              Core Benefits
+            </div>
+            <h3 className="text-3xl font-bold text-emerald-900 md:text-4xl">ทำไมต้องเลือกเรา</h3>
+            <p className="mt-3 text-lg text-emerald-600">เราออกแบบมาเพื่อให้คุณรู้สึกปลอดภัยและได้รับการดูแลที่ดีที่สุด</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature, index) => (
               <div
-                key={index}
-                className="bg-white p-6 rounded-2xl border-2 border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all group"
+                key={feature.title}
+                className="group relative rounded-3xl border border-emerald-100/90 bg-white/95 p-6 shadow-[0_12px_35px_-22px_rgba(16,185,129,0.45)] transition-all duration-300 hover:-translate-y-2 hover:border-emerald-300 hover:shadow-[0_25px_55px_-25px_rgba(13,148,136,0.45)]"
               >
-                <div className="w-14 h-14 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-7 h-7 text-emerald-600" />
+                <div className="absolute inset-x-6 top-0 h-1 rounded-b-full bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 opacity-70" />
+                <p className="mb-4 text-xs font-bold tracking-[0.14em] text-emerald-500">0{index + 1}</p>
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 ring-1 ring-emerald-100 transition-transform group-hover:scale-105">
+                  <feature.icon className="h-7 w-7 text-emerald-600" />
                 </div>
-                <h4 className="font-semibold text-emerald-900 mb-2">{feature.title}</h4>
-                <p className="text-emerald-600 text-sm">{feature.description}</p>
+                <h4 className="mb-2 text-2xl font-bold leading-tight text-emerald-900">{feature.title}</h4>
+                <p className="text-sm leading-relaxed text-emerald-600">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl md:text-4xl font-bold text-emerald-900 mb-4">หัวข้อที่เราสามารถช่วยได้</h3>
-            <p className="text-emerald-600 text-lg">
-              ไม่ว่าคุณจะกำลังเผชิญกับอะไร เรายินดีรับฟังและให้คำแนะนำ
-            </p>
+      <section className="py-20" id="topics">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="mb-10 text-center">
+            <h3 className="text-3xl font-bold text-emerald-900 md:text-4xl">หัวข้อที่เราสามารถช่วยได้</h3>
+            <p className="mt-3 text-lg text-emerald-600">ไม่ว่าคุณจะกำลังเผชิญกับอะไร เรายินดีรับฟังและให้คำแนะนำ</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {topics.map((topic, index) => (
-              <div
-                key={index}
-                className="bg-white p-6 rounded-xl border-2 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50 transition-all flex items-center gap-3 cursor-pointer group"
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {topics.map((topic) => (
+              <button
+                key={topic}
+                className="group flex items-center justify-between gap-3 rounded-xl border-2 border-emerald-100 bg-white p-5 text-left transition-all hover:border-emerald-400 hover:bg-emerald-50"
               >
-                <div className="flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-emerald-500" />
-                </div>
-                <span className="text-emerald-800 font-medium group-hover:text-emerald-900">{topic}</span>
-              </div>
+                <span className="font-medium text-emerald-800 group-hover:text-emerald-900">{topic}</span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-emerald-400 transition-transform group-hover:translate-x-1 group-hover:text-emerald-600" />
+              </button>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl p-12 text-center text-white shadow-2xl shadow-emerald-200">
-            <Heart className="w-16 h-16 mx-auto mb-6" fill="white" />
-            <h3 className="text-3xl md:text-4xl font-bold mb-4">พร้อมที่จะเริ่มต้นหรือยัง?</h3>
-            <p className="text-emerald-50 text-lg mb-8">
+      <section className="pb-20">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="rounded-3xl border border-emerald-100 bg-white/75 p-6 shadow-xl shadow-emerald-100 backdrop-blur md:p-10">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h3 className="text-2xl font-bold text-emerald-900 md:text-3xl">เริ่มใช้งานง่ายใน 3 ขั้นตอน</h3>
+              <span className="hidden rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700 md:inline-flex">
+                ใช้เวลาน้อยกว่า 1 นาที
+              </span>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {steps.map((step, index) => (
+                <div key={step.title} className="rounded-2xl border border-emerald-100 bg-white p-5">
+                  <p className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+                    {index + 1}
+                  </p>
+                  <h4 className="text-lg font-semibold text-emerald-900">{step.title}</h4>
+                  <p className="mt-2 text-sm text-emerald-600">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-20" id="start">
+        <div className="mx-auto max-w-4xl px-4 md:px-6">
+          <div className="rounded-3xl bg-gradient-to-r from-emerald-500 to-teal-500 p-10 text-center text-white shadow-2xl shadow-emerald-200 md:p-12">
+            <Heart className="mx-auto mb-6 h-16 w-16" fill="white" />
+            <h3 className="text-3xl font-bold md:text-4xl">พร้อมที่จะเริ่มต้นหรือยัง?</h3>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-emerald-50">
               ก้าวแรกสู่สุขภาพจิตที่ดีขึ้น เริ่มต้นด้วยการพูดคุยกับเราวันนี้
             </p>
-            <button
-              onClick={handleStartChat}
-              className="px-8 py-4 bg-white text-emerald-600 rounded-full hover:bg-emerald-50 transition-all shadow-xl font-medium inline-flex items-center gap-2 group"
-            >
-              <MessageCircle className="w-5 h-5" />
+            <button className="group mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-emerald-600 shadow-xl transition-all hover:bg-emerald-50">
+              <MessageCircle className="h-5 w-5" />
               <span>เริ่มการสนทนาตอนนี้</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </button>
           </div>
         </div>
       </section>
 
-      <footer className="bg-emerald-900 text-emerald-100 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+      <footer className="bg-emerald-900 py-12 text-emerald-100">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-3">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" fill="white" />
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500">
+                  <Heart className="h-5 w-5 text-white" fill="white" />
                 </div>
                 <span className="font-semibold text-white">AI ที่ปรึกษาด้านจิตใจ</span>
               </div>
-              <p className="text-emerald-300 text-sm">พื้นที่ปลอดภัยสำหรับการดูแลสุขภาพจิตของคุณ</p>
+              <p className="text-sm text-emerald-300">พื้นที่ปลอดภัยสำหรับการดูแลสุขภาพจิตของคุณ</p>
             </div>
 
             <div>
-              <h4 className="font-semibold text-white mb-4">แหล่งความช่วยเหลือ</h4>
+              <h4 className="mb-4 font-semibold text-white">แหล่งความช่วยเหลือ</h4>
               <ul className="space-y-2 text-sm text-emerald-300">
                 <li>สายด่วนสุขภาพจิต: 1323</li>
                 <li>สายด่วนป้องกันการฆ่าตัวตาย: 1422</li>
@@ -219,20 +309,20 @@ export default function Home() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-white mb-4">เกี่ยวกับเรา</h4>
+              <h4 className="mb-4 font-semibold text-white">เกี่ยวกับเรา</h4>
               <ul className="space-y-2 text-sm text-emerald-300">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="transition-colors hover:text-white">
                     เกี่ยวกับโครงการ
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="transition-colors hover:text-white">
                     นโยบายความเป็นส่วนตัว
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="#" className="transition-colors hover:text-white">
                     ข้อกำหนดการใช้งาน
                   </a>
                 </li>
