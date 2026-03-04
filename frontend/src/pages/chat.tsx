@@ -177,6 +177,8 @@ export default function Chat() {
     "อยากได้แผนดูแลใจแบบง่ายๆ สำหรับคืนนี้",
   ];
 
+  const sessionMinutes = Math.min(5 + messages.length * 2, 25);
+
   return (
     <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_#d9fff3_0%,_#d8f7f1_30%,_#d6ecee_100%)] text-emerald-900">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -185,7 +187,7 @@ export default function Chat() {
         <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-teal-300/30 blur-3xl" />
       </div>
 
-      <header className="border-b border-emerald-100/70 bg-white/75 backdrop-blur-xl">
+      <header className="border-b border-emerald-100/70 bg-white/70 shadow-[0_10px_40px_-30px_rgba(16,185,129,0.6)] backdrop-blur-xl">
         <div className="flex w-full items-center justify-between px-4 py-4 md:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-200">
@@ -219,7 +221,7 @@ export default function Chat() {
         </div>
       </header>
 
-      <main className="grid h-[calc(100vh-81px)] grid-cols-1 gap-4 px-4 py-4 md:px-6 lg:grid-cols-[320px_1fr]">
+      <main className="grid h-[calc(100vh-81px)] grid-cols-1 gap-4 px-4 py-4 md:px-6 lg:grid-cols-[300px_1fr]">
         <aside className="hidden rounded-3xl border border-emerald-100/90 bg-white/65 p-5 shadow-xl shadow-emerald-100 backdrop-blur lg:flex lg:flex-col">
           <div className="mb-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
@@ -245,7 +247,7 @@ export default function Chat() {
               <p className="mb-1 text-xs uppercase tracking-[0.12em] text-emerald-500">Focus Time</p>
               <p className="inline-flex items-center gap-2 font-semibold text-emerald-800">
                 <Timer className="h-4 w-4 text-emerald-500" />
-                5-10 นาทีต่อ session
+                {sessionMinutes} นาที session นี้
               </p>
             </div>
           </div>
@@ -255,7 +257,10 @@ export default function Chat() {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col rounded-3xl border border-emerald-100/90 bg-white/55 shadow-2xl shadow-emerald-100 backdrop-blur-xl">
+        <section className="relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-emerald-100/90 bg-white/60 shadow-2xl shadow-emerald-100 backdrop-blur-xl">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-to-br from-cyan-200/45 to-teal-200/45 blur-2xl" />
+          <div className="pointer-events-none absolute -left-16 bottom-6 h-36 w-36 rounded-full bg-gradient-to-br from-emerald-200/45 to-teal-200/35 blur-2xl" />
+
           <div className="flex items-center justify-between border-b border-emerald-100/70 px-4 py-3 md:px-5">
             <div>
               <h3 className="text-base font-bold text-emerald-900 md:text-lg">พื้นที่สนทนาแบบไม่ตัดสิน</h3>
@@ -267,14 +272,14 @@ export default function Chat() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+          <div className="relative z-10 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
             <div className="space-y-5">
               <div className="mb-2 flex flex-wrap gap-2">
                 {quickPrompts.map((prompt) => (
                   <button
                     key={prompt}
                     onClick={() => handleQuickPrompt(prompt)}
-                    className="rounded-full border border-emerald-200 bg-white/85 px-3 py-1.5 text-xs text-emerald-700 transition-colors hover:bg-emerald-50"
+                    className="rounded-full border border-emerald-200 bg-white/90 px-3 py-1.5 text-xs text-emerald-700 transition-all hover:-translate-y-0.5 hover:shadow-sm hover:bg-emerald-50"
                   >
                     {prompt}
                   </button>
@@ -296,8 +301,8 @@ export default function Chat() {
                     <div
                       className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap md:text-[15px] ${
                         message.role === "user"
-                          ? "rounded-tr-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-200"
-                          : "rounded-tl-sm border border-emerald-100 bg-white/95 text-emerald-900 shadow-sm"
+                          ? "rounded-tr-sm bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-[0_18px_34px_-22px_rgba(13,148,136,0.8)]"
+                          : "rounded-tl-sm border border-emerald-100 bg-white/95 text-emerald-900 shadow-[0_10px_30px_-20px_rgba(16,185,129,0.55)]"
                       }`}
                     >
                       {message.content}
@@ -332,7 +337,7 @@ export default function Chat() {
             </div>
           </div>
 
-          <div className="border-t border-emerald-100/70 bg-white/80 px-4 py-4 backdrop-blur md:px-5">
+          <div className="relative z-10 border-t border-emerald-100/70 bg-white/80 px-4 py-4 backdrop-blur md:px-5">
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <textarea
@@ -354,7 +359,7 @@ export default function Chat() {
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
-                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-200 transition-all hover:from-emerald-600 hover:to-teal-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-[0_18px_34px_-22px_rgba(13,148,136,0.8)] transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send className="h-5 w-5 text-white" />
               </button>
@@ -366,6 +371,7 @@ export default function Chat() {
             </p>
           </div>
         </section>
+
       </main>
     </div>
   );
