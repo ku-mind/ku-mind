@@ -18,6 +18,56 @@ interface Message {
   timestamp: Date;
 }
 
+const randomPick = (items: string[]) => items[Math.floor(Math.random() * items.length)];
+
+function createFallbackReply(input: string): string {
+  const text = input.toLowerCase();
+
+  const stressedKeywords = ["เครียด", "เหนื่อย", "กังวล", "กดดัน", "stress", "anx"];
+  const sleepKeywords = ["นอน", "sleep", "หลับ", "ง่วง"];
+  const workKeywords = ["งาน", "เรียน", "deadline", "สอบ", "project"];
+  const lonelyKeywords = ["เหงา", "โดดเดี่ยว", "ไม่มีใคร", "alone"];
+
+  const stressedReplies = [
+    "เข้าใจเลยว่ามันหนักมากในตอนนี้ 💚 ลองเริ่มจากหายใจช้าๆ 4 รอบ แล้วค่อยเล่าเรื่องที่กดดันที่สุดมาทีละข้อได้ไหม",
+    "ขอบคุณที่ไว้ใจเล่าให้ฟังนะคะ ตอนเครียดมากๆ เราอาจช่วยกันแยกว่าอะไร 'ควบคุมได้' กับ 'ควบคุมไม่ได้' ก่อน",
+    "ตอนนี้คุณทำดีที่สุดแล้วนะ ✨ ถ้าโอเค ลองให้คะแนนความเครียด 0-10 ตอนนี้ แล้วเราวางแผนลดลงทีละ 1 คะแนนกัน",
+  ];
+
+  const sleepReplies = [
+    "ถ้าเรื่องนอนกำลังรวน ลองเริ่มแผนสั้นๆ คืนนี้: ปิดจอ 30 นาที + หายใจยาว 10 ครั้ง + จดสิ่งที่กังวลลงกระดาษ",
+    "เรื่องการนอนส่งผลกับใจมากจริงๆ ค่ะ ลองตั้ง ritual ก่อนนอนแบบเดิมทุกคืนสัก 3 วัน แล้วสังเกตความต่าง",
+    "คืนนี้เราโฟกัสแค่ 'พักให้ได้มากขึ้นนิดนึง' ก็ชนะแล้วนะ 💚 อยากให้ช่วยออกแบบ routine ก่อนนอนแบบ 15 นาทีไหม",
+  ];
+
+  const workReplies = [
+    "ถ้างาน/เรียนแน่นมาก ลองแบ่งเป็น 3 ก้อน: ต้องทำวันนี้, ทำพรุ่งนี้ได้, และฝากคนอื่นได้ จะเบาลงทันที",
+    "เราลองจัดแผนแบบ 25 นาทีโฟกัส + 5 นาทีพักดีไหมคะ เริ่มจากงานที่เล็กที่สุดก่อนเพื่อดึงโมเมนตัมกลับมา",
+    "เดดไลน์ทำให้ใจตื้อได้มากเลย ลองพิมพ์ 3 งานที่สำคัญสุดตอนนี้มา เดี๋ยวฉันช่วยเรียงลำดับให้",
+  ];
+
+  const lonelyReplies = [
+    "ขอบคุณที่พูดตรงๆ เรื่องความเหงาไม่เล็กเลยนะคะ 💚 ตอนนี้ฉันอยู่ตรงนี้กับคุณเสมอ",
+    "การรู้สึกโดดเดี่ยวมันหนักจริงๆ เราอาจเริ่มจากเชื่อมต่อเล็กๆ เช่นทักใครสักคน 1 ข้อความในวันนี้",
+    "คุณไม่จำเป็นต้องแบกทุกอย่างคนเดียว ลองเล่าวันนี้ว่าเวลาไหนที่รู้สึกเหงาที่สุด ฉันจะช่วยค่อยๆ คลี่ให้",
+  ];
+
+  const genericReplies = [
+    "ขอบคุณที่เล่าให้ฟังนะคะ 💚 ฉันรับฟังคุณอยู่เสมอ",
+    "ได้เลย เราค่อยๆ ไปทีละสเต็ปนะ คุณอยากเริ่มจากจุดไหนก่อน",
+    "สิ่งที่คุณรู้สึกสำคัญมากนะคะ ลองเล่าเพิ่มอีกนิดได้ไหม ว่าอะไรเป็นตัวกระตุ้นหลักวันนี้",
+    "โอเคเลยค่ะ ฉันอยู่ตรงนี้เพื่อช่วยคุณจัดระเบียบความคิดแบบไม่ตัดสิน",
+    "เราลองสรุปสั้นๆ ตอนนี้ก่อนดีไหม: รู้สึกอะไร, เกิดจากอะไร, และอยากให้ดีขึ้นแบบไหน",
+  ];
+
+  if (stressedKeywords.some((k) => text.includes(k))) return randomPick(stressedReplies);
+  if (sleepKeywords.some((k) => text.includes(k))) return randomPick(sleepReplies);
+  if (workKeywords.some((k) => text.includes(k))) return randomPick(workReplies);
+  if (lonelyKeywords.some((k) => text.includes(k))) return randomPick(lonelyReplies);
+
+  return randomPick(genericReplies);
+}
+
 export default function Chat() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
@@ -91,7 +141,7 @@ export default function Chat() {
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "ขอบคุณที่เล่าให้ฟังนะคะ 💚 ฉันรับฟังคุณอยู่เสมอค่ะ",
+          content: createFallbackReply(userMessage.content),
           timestamp: new Date(),
         },
       ]);
