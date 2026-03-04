@@ -7,15 +7,17 @@
     <title>ku-mind-frontend-vite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ["Noto Sans Thai", "sans-serif"],
+      if (window.tailwind) {
+        window.tailwind.config = {
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ["Noto Sans Thai", "sans-serif"],
+              },
             },
           },
-        },
-      };
+        };
+      }
     </script>
   </head>
   <body>
