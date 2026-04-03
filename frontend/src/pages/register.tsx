@@ -56,12 +56,7 @@ export default function Register() {
         setError(data.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
       }
     } catch {
-      // Demo mode
-      localStorage.setItem(
-        "ku_mind_user",
-        JSON.stringify({ email: form.email, name: form.name })
-      );
-      navigate("/chat");
+      setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsLoading(false);
     }

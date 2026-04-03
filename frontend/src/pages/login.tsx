@@ -42,12 +42,7 @@ export default function Login() {
         setError(data.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       }
     } catch {
-      if (email && password) {
-        localStorage.setItem("ku_mind_user", JSON.stringify({ email, name: email.split("@")[0] }));
-        navigate("/chat");
-      } else {
-        setError("กรุณากรอกอีเมลและรหัสผ่าน");
-      }
+      setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsLoading(false);
     }

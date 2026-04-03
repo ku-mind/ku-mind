@@ -6,7 +6,6 @@ import {
   MessageCircle,
   Shield,
   Sparkles,
-  Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

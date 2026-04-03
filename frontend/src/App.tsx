@@ -5,7 +5,9 @@ import Register from "./pages/register";
 import Chat from "./pages/chat";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const isLoggedIn = localStorage.getItem("ku_mind_user") !== null;
+  const isLoggedIn =
+    localStorage.getItem("ku_mind_user") !== null &&
+    localStorage.getItem("ku_mind_token") !== null;
   return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
 }
 

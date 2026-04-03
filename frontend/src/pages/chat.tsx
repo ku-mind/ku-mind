@@ -118,7 +118,13 @@ export default function Chat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({
+          message: userMessage.content,
+          history: messages.slice(-12).map((item) => ({
+            role: item.role,
+            content: item.content,
+          })),
+        }),
       });
 
       if (response.ok) {
@@ -132,6 +138,10 @@ export default function Chat() {
             timestamp: new Date(),
           },
         ]);
+      } else if (response.status === 401) {
+        localStorage.removeItem("ku_mind_user");
+        localStorage.removeItem("ku_mind_token");
+        navigate("/login");
       } else {
         throw new Error("API error");
       }

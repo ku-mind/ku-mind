@@ -23,7 +23,10 @@ class AuthService:
             email=email,
             password_hash=hash_password(payload.password),
         )
-        return AuthResponse(user=UserOut(id=user.id, name=user.name, email=user.email), token=create_access_token())
+        return AuthResponse(
+            user=UserOut(id=user.id, name=user.name, email=user.email),
+            token=create_access_token(user.id, user.email),
+        )
 
     def login(self, payload: LoginRequest) -> AuthResponse:
         email = payload.email.strip().lower()
@@ -35,4 +38,7 @@ class AuthService:
                 detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง",
             )
 
-        return AuthResponse(user=UserOut(id=user.id, name=user.name, email=user.email), token=create_access_token())
+        return AuthResponse(
+            user=UserOut(id=user.id, name=user.name, email=user.email),
+            token=create_access_token(user.id, user.email),
+        )
