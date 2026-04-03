@@ -3,6 +3,7 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Chat from "./pages/chat";
+import CheckIn from "./pages/checkin";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn =
@@ -19,6 +20,14 @@ export default function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route
+          path="/checkin"
+          element={
+            <PrivateRoute>
+              <CheckIn />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/chat"
           element={

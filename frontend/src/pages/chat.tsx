@@ -20,7 +20,7 @@ interface Message {
 
 const randomPick = (items: string[]) => items[Math.floor(Math.random() * items.length)];
 
-function createFallbackReply(input: string): string {
+function createFallbackReply(input: string, previousAssistantResponse?: string): string {
   const text = input.toLowerCase();
 
   const stressedKeywords = ["เครียด", "เหนื่อย", "กังวล", "กดดัน", "stress", "anx"];
@@ -60,12 +60,21 @@ function createFallbackReply(input: string): string {
     "เราลองสรุปสั้นๆ ตอนนี้ก่อนดีไหม: รู้สึกอะไร, เกิดจากอะไร, และอยากให้ดีขึ้นแบบไหน",
   ];
 
-  if (stressedKeywords.some((k) => text.includes(k))) return randomPick(stressedReplies);
-  if (sleepKeywords.some((k) => text.includes(k))) return randomPick(sleepReplies);
-  if (workKeywords.some((k) => text.includes(k))) return randomPick(workReplies);
-  if (lonelyKeywords.some((k) => text.includes(k))) return randomPick(lonelyReplies);
+  const pickUnique = (candidates: string[]) => {
+    let pick = randomPick(candidates);
+    if (previousAssistantResponse && pick === previousAssistantResponse) {
+      const alt = candidates.filter((c) => c !== previousAssistantResponse);
+      if (alt.length > 0) pick = randomPick(alt);
+    }
+    return pick;
+  };
 
-  return randomPick(genericReplies);
+  if (stressedKeywords.some((k) => text.includes(k))) return pickUnique(stressedReplies);
+  if (sleepKeywords.some((k) => text.includes(k))) return pickUnique(sleepReplies);
+  if (workKeywords.some((k) => text.includes(k))) return pickUnique(workReplies);
+  if (lonelyKeywords.some((k) => text.includes(k))) return pickUnique(lonelyReplies);
+
+  return pickUnique(genericReplies);
 }
 
 export default function Chat() {
@@ -93,6 +102,10 @@ export default function Chat() {
     localStorage.removeItem("ku_mind_user");
     localStorage.removeItem("ku_mind_token");
     navigate("/");
+  };
+
+  const handleCheckIn = () => {
+    navigate("/checkin");
   };
 
   const sendMessage = async (rawMessage: string) => {
@@ -146,12 +159,14 @@ export default function Chat() {
         throw new Error("API error");
       }
     } catch {
+      const lastAssistant = messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content;
+      const fallback = createFallbackReply(userMessage.content, lastAssistant);
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: createFallbackReply(userMessage.content),
+          content: fallback,
           timestamp: new Date(),
         },
       ]);
@@ -220,6 +235,14 @@ export default function Chat() {
             <span className="hidden text-sm font-medium text-emerald-700 sm:block">
               สวัสดี, {user.name || user.email || "คุณ"}
             </span>
+            <button
+              onClick={handleCheckIn}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 transition-all hover:bg-emerald-50"
+              title="ประเมินสภาพจิต"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span className="hidden sm:block">Check-in</span>
+            </button>
             <button
               onClick={handleLogout}
               className="inline-flex items-center gap-2 rounded-full border-2 border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 transition-all hover:bg-emerald-50"

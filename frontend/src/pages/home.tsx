@@ -16,6 +16,10 @@ export default function Home() {
     navigate("/login");
   };
 
+  const goToCheckIn = () => {
+    navigate("/checkin");
+  };
+
   const features = [
     {
       icon: Clock,
@@ -139,6 +143,15 @@ export default function Home() {
           </div>
 
           <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <button
+              onClick={goToCheckIn}
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-4 text-white shadow-xl shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-2xl"
+            >
+              <Shield className="h-5 w-5" />
+              <span className="font-semibold">ประเมินสภาพจิต</span>
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </button>
+
             <button
               onClick={goToLogin}
               className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-4 text-white shadow-xl shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-600 hover:to-teal-600 hover:shadow-2xl"
@@ -292,14 +305,24 @@ export default function Home() {
             <p className="mx-auto mt-4 max-w-2xl text-lg text-emerald-50">
               ก้าวแรกสู่สุขภาพจิตที่ดีขึ้น เริ่มต้นด้วยการพูดคุยกับเราวันนี้
             </p>
-            <button
-              onClick={goToLogin}
-              className="group mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-emerald-600 shadow-xl transition-all hover:bg-emerald-50"
-            >
-              <MessageCircle className="h-5 w-5" />
-              <span>เริ่มการสนทนาตอนนี้</span>
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </button>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
+              <button
+                onClick={goToCheckIn}
+                className="group inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-emerald-600 shadow-xl transition-all hover:bg-emerald-50"
+              >
+                <Shield className="h-5 w-5" />
+                <span>ประเมินสภาพจิต</span>
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button
+                onClick={goToLogin}
+                className="group inline-flex items-center justify-center gap-2 rounded-full bg-white/20 px-8 py-4 font-semibold text-white backdrop-blur border border-white/30 transition-all hover:bg-white/30"
+              >
+                <MessageCircle className="h-5 w-5" />
+                <span>เริ่มการสนทนา</span>
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
