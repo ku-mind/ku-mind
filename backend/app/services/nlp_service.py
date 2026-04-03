@@ -1,5 +1,6 @@
 from transformers import pipeline
 from typing import Dict, List, Optional
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -143,13 +144,41 @@ class NLPService:
 
         # Define theme keywords (Thai + English)
         theme_keywords = {
-            "stress": ["เครียด", "กดดัน", "stress", "pressure", "anxious"],
-            "work": ["งาน", "เรียน", "assignment", "deadline", "exam", "สอบ"],
-            "sleep": ["นอน", "หลับ", "ง่วง", "sleep", "tired"],
-            "relationship": ["เพื่อน", "ครอบครัว", "คนรัก", "relationship", "friend"],
-            "loneliness": ["เหงา", "โดดเดี่ยว", "alone", "lonely"],
-            "mood": ["เศร้า", "sad", "happy", "ดีใจ", "อารมณ์"],
-            "health": ["ป่วย", "เจ็บ", "สุขภาพ", "health", "sick"]
+            "stress": [
+                "เครียด", "กดดัน", "วิตก", "กังวล", "อึดอัด", "ไม่ไหวแล้ว",
+                "stress", "pressure", "anxious", "overwhelmed", "burned out"
+            ],
+            "work": [
+                "งาน", "เรียน", "การบ้าน", "รายงาน", "โปรเจกต์", "สอบ", "ข้อสอบ",
+                "เดดไลน์", "ส่งงาน", "ติว", "ชั้นเรียน",
+                "assignment", "deadline", "exam", "project", "homework", "study"
+            ],
+            "sleep": [
+                "นอน", "หลับ", "ง่วง", "ตื่น", "นอนไม่หลับ", "อ่อนเพลีย", "เพลีย",
+                "sleep", "tired", "exhausted", "insomnia", "fatigue"
+            ],
+            "relationship": [
+                "เพื่อน", "แฟน", "คนรัก", "ครอบครัว", "พ่อ", "แม่", "พี่", "น้อง",
+                "ทะเลาะ", "เลิก", "ห่างเหิน", "ไม่เข้าใจกัน",
+                "friend", "boyfriend", "girlfriend", "family", "relationship", "breakup"
+            ],
+            "loneliness": [
+                "เหงา", "โดดเดี่ยว", "ไม่มีใคร", "อยู่คนเดียว", "รู้สึกเดียวดาย",
+                "alone", "lonely", "isolated", "no one"
+            ],
+            "mood": [
+                "เศร้า", "ร้องไห้", "หม่นหมอง", "ไม่มีความสุข", "หดหู่", "ท้อ", "ท้อแท้",
+                "sad", "cry", "unhappy", "depressed", "hopeless", "down"
+            ],
+            "health": [
+                "ป่วย", "เจ็บ", "ไม่สบาย", "ปวดหัว", "ปวดท้อง", "สุขภาพ",
+                "sick", "headache", "pain", "health", "ill"
+            ],
+            "finance": [
+                "เงิน", "ทุน", "กู้", "หนี้", "ค่าเทอม", "ค่าใช้จ่าย", "ไม่มีเงิน",
+                "กยศ", "ทุนการศึกษา", "ค่าครองชีพ", "รายได้", "รายจ่าย", "ฝืดเคือง",
+                "money", "debt", "loan", "tuition", "broke", "financial", "scholarship"
+            ],
         }
 
         text_lower = text.lower()
@@ -200,7 +229,7 @@ class NLPService:
             "emotion": emotion,
             "themes": themes,
             "nlp_risk_score": risk_score,
-            "analysis_timestamp": "2024-01-01T00:00:00Z"  # TODO: Add real timestamp
+            "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def _ensure_initialized(self):
@@ -239,7 +268,8 @@ class NLPService:
             risk_score += 0.3 * emotion['confidence']
 
         # Theme contribution
-        high_risk_themes = ['stress', 'loneliness', 'work']
+        # change [] to {} because it will check faster.
+        high_risk_themes = {"stress", "loneliness", "mood", "finance"}
         theme_risk = len([t for t in themes if t in high_risk_themes]) / len(high_risk_themes)
         risk_score += 0.3 * theme_risk
 

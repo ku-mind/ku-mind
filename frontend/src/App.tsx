@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Chat from "./pages/chat";
 import CheckIn from "./pages/checkin";
+import ConsentModal from "./components/ConsentModal";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn =
@@ -13,8 +15,29 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const [showConsent, setShowConsent] = useState(false);
+
+  useEffect(() => {
+    const consented = localStorage.getItem("ku_mind_consent");
+    if (!consented) setShowConsent(true);
+  }, []);
+
+  const handleAccept = () => {
+    localStorage.setItem("ku_mind_consent", "true");
+    setShowConsent(false);
+  };
+
+  const handleDecline = () => {
+    // ส่ง user กลับ home แล้วแจ้งว่าใช้งานไม่ได้
+    setShowConsent(false);
+    window.location.href = "/";
+  };
+
   return (
     <BrowserRouter>
+      {showConsent && (
+        <ConsentModal onAccept={handleAccept} onDecline={handleDecline} />
+      )}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />

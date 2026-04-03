@@ -16,6 +16,65 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  nlp?: {
+    sentiment: string;
+    emotion: string;
+    themes: string[];
+    nlp_risk: number;
+  };
+}
+
+const CHAT_STORAGE_PREFIX = "ku_mind_chat_messages";
+const MAX_STORED_MESSAGES = 200;
+
+const defaultWelcomeMessage = (): Message => ({
+  id: "1",
+  role: "assistant",
+  content:
+    "สวัสดีค่ะ ฉันคือ Ku mind ผู้ช่วยด้านสุขภาพจิตของคุณ 💚\n\nวันนี้คุณรู้สึกเป็นยังไงบ้าง? มีอะไรอยากเล่าให้ฟังไหมคะ?",
+  timestamp: new Date(),
+});
+
+function getChatStorageKey(): string {
+  try {
+    const raw = localStorage.getItem("ku_mind_user");
+    if (!raw) return `${CHAT_STORAGE_PREFIX}_guest`;
+    const u = JSON.parse(raw) as { email?: string; id?: number };
+    const scope = u.email ?? String(u.id ?? "guest");
+    return `${CHAT_STORAGE_PREFIX}_${scope}`;
+  } catch {
+    return `${CHAT_STORAGE_PREFIX}_guest`;
+  }
+}
+
+function loadMessagesFromStorage(): Message[] {
+  try {
+    const raw = localStorage.getItem(getChatStorageKey());
+    if (!raw) return [defaultWelcomeMessage()];
+    const parsed = JSON.parse(raw) as Array<
+      Omit<Message, "timestamp"> & { timestamp: string }
+    >;
+    if (!Array.isArray(parsed) || parsed.length === 0) return [defaultWelcomeMessage()];
+    return parsed.map((m) => ({
+      ...m,
+      timestamp: new Date(m.timestamp),
+    }));
+  } catch {
+    return [defaultWelcomeMessage()];
+  }
+}
+
+function serializeMessagesForStorage(messages: Message[]): string {
+  const trimmed =
+    messages.length > MAX_STORED_MESSAGES
+      ? messages.slice(-MAX_STORED_MESSAGES)
+      : messages;
+  return JSON.stringify(
+    trimmed.map((m) => ({
+      ...m,
+      timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+    }))
+  );
 }
 
 const randomPick = (items: string[]) => items[Math.floor(Math.random() * items.length)];
@@ -79,15 +138,7 @@ function createFallbackReply(input: string, previousAssistantResponse?: string):
 
 export default function Chat() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "สวัสดีค่ะ ฉันคือ Ku mind ผู้ช่วยด้านสุขภาพจิตของคุณ 💚\n\nวันนี้คุณรู้สึกเป็นยังไงบ้าง? มีอะไรอยากเล่าให้ฟังไหมคะ?",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(loadMessagesFromStorage);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -98,7 +149,20 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(getChatStorageKey(), serializeMessagesForStorage(messages));
+    } catch {
+      /* quota or private mode */
+    }
+  }, [messages]);
+
   const handleLogout = () => {
+    try {
+      localStorage.removeItem(getChatStorageKey());
+    } catch {
+      /* ignore */
+    }
     localStorage.removeItem("ku_mind_user");
     localStorage.removeItem("ku_mind_token");
     navigate("/");
@@ -125,7 +189,7 @@ export default function Chat() {
 
     try {
       const token = localStorage.getItem("ku_mind_token");
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat/with-context", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,6 +213,7 @@ export default function Chat() {
             role: "assistant",
             content: data.reply,
             timestamp: new Date(),
+            nlp: data.nlp_context,
           },
         ]);
       } else if (response.status === 401) {
@@ -340,6 +405,29 @@ export default function Chat() {
                     >
                       {message.content}
                     </div>
+                    {message.role === "assistant" && message.nlp && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          message.nlp.sentiment === "NEGATIVE"
+                            ? "bg-red-50 text-red-600"
+                            : message.nlp.sentiment === "POSITIVE"
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-gray-50 text-gray-500"
+                        }`}>
+                          {message.nlp.sentiment === "NEGATIVE" ? "😔" : message.nlp.sentiment === "POSITIVE" ? "😊" : "😐"} {message.nlp.sentiment.toLowerCase()}
+                        </span>
+                        {message.nlp.emotion !== "neutral" && (
+                          <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-purple-600">
+                            {message.nlp.emotion}
+                          </span>
+                        )}
+                        {message.nlp.themes.map((theme) => (
+                          <span key={theme} className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-600">
+                            #{theme}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p
                       className={`mt-1 text-[11px] ${
                         message.role === "user" ? "text-right text-emerald-500" : "text-emerald-500"
