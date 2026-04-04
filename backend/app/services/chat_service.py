@@ -112,8 +112,7 @@ class ChatService:
             "generationConfig": {
                 "temperature": 0.7,
                 "topP": 0.9,
-                "maxOutputTokens": 700,
-                "repetitionPenalty": 1.1,
+                "maxOutputTokens": 2048,
             },
         }
 
@@ -125,6 +124,8 @@ class ChatService:
                     json=payload,
                     headers={"Content-Type": "application/json"},
                 )
+            print("STATUS:", response.status_code)
+            print("BODY:", response.text)
             response.raise_for_status()
             data = response.json()
             reply_text = self._extract_text(data)
