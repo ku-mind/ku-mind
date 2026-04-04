@@ -163,7 +163,18 @@ function createFallbackReply(input: string, previousAssistantResponse?: string):
 
 export default function Chat() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>(loadMessagesFromStorage);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const s = loadSessions();
+    const sessionId = s.length > 0 ? s[0].id : Date.now().toString();
+    const raw = localStorage.getItem(getSessionKey(sessionId));
+    if (!raw) return [defaultWelcomeMessage()];
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+    } catch {
+      return [defaultWelcomeMessage()];
+    }
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -177,19 +188,36 @@ export default function Chat() {
   });
 
   const handleNewChat = () => {
-    // save preview ของ session ปัจจุบัน
     const preview = messages.find(m => m.role === "user")?.content ?? "New Chat";
+    const newId = Date.now().toString();
+    
     const updated = [
+      { id: newId, createdAt: new Date().toISOString(), preview: "New Chat" },
       { id: currentSessionId, createdAt: new Date().toISOString(), preview: preview.slice(0, 30) },
       ...sessions.filter(s => s.id !== currentSessionId),
     ];
     saveSessions(updated);
     setSessions(updated);
-
-    // เปิด session ใหม่
-    const newId = Date.now().toString();
     setCurrentSessionId(newId);
     setMessages([defaultWelcomeMessage()]);
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    localStorage.removeItem(getSessionKey(sessionId));
+    const updated = sessions.filter(s => s.id !== sessionId);
+    saveSessions(updated);
+    setSessions(updated);
+  
+    // ถ้าลบห้องที่กำลังอยู่ → สลับไปห้องแรกที่เหลือ หรือเปิดใหม่
+    if (sessionId === currentSessionId) {
+      if (updated.length > 0) {
+        handleSwitchSession(updated[0].id);
+      } else {
+        const newId = Date.now().toString();
+        setCurrentSessionId(newId);
+        setMessages([defaultWelcomeMessage()]);
+      }
+    }
   };
 
   const handleSwitchSession = (sessionId: string) => {
@@ -202,6 +230,14 @@ export default function Chat() {
       setMessages([defaultWelcomeMessage()]);
     }
     setCurrentSessionId(sessionId);
+  
+    // เอา session ที่เลือกขึ้นบนสุด
+    const updated = [
+      sessions.find(s => s.id === sessionId)!,
+      ...sessions.filter(s => s.id !== sessionId),
+    ];
+    saveSessions(updated);
+    setSessions(updated);
   };
 
   useEffect(() => {
@@ -243,6 +279,13 @@ export default function Chat() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    // เอา session ปัจจุบันขึ้นบนสุด
+    const reordered = [
+      { id: currentSessionId, createdAt: new Date().toISOString(), preview: messageText.slice(0, 30) },
+      ...sessions.filter(s => s.id !== currentSessionId),
+    ];
+    saveSessions(reordered);
+    setSessions(reordered);
     setInput("");
     setIsLoading(true);
 
@@ -422,13 +465,20 @@ export default function Chat() {
               New Chat
             </button>
             {sessions.map(s => (
-              <button
-                key={s.id}
-                onClick={() => handleSwitchSession(s.id)}
-                className={`rounded-2xl px-4 py-2 text-left text-sm ${currentSessionId === s.id ? "bg-emerald-100 font-semibold text-emerald-800" : "bg-white/80 text-emerald-700 hover:bg-emerald-50"}`}
-              >
-                {s.preview || "Chat"}
-              </button>
+              <div key={s.id} className="flex items-center gap-1">
+                <button
+                  onClick={() => handleSwitchSession(s.id)}
+                  className={`flex-1 rounded-2xl px-4 py-2 text-left text-sm ${currentSessionId === s.id ? "bg-emerald-100 font-semibold text-emerald-800" : "bg-white/80 text-emerald-700 hover:bg-emerald-50"}`}
+                >
+                  {s.preview || "Chat"}
+                </button>
+                <button
+                  onClick={() => handleDeleteSession(s.id)}
+                  className="rounded-full p-1 text-emerald-400 hover:bg-red-50 hover:text-red-500"
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         </aside>
