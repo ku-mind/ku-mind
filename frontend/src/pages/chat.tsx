@@ -27,6 +27,14 @@ interface Message {
 const CHAT_STORAGE_PREFIX = "ku_mind_chat_messages";
 const MAX_STORED_MESSAGES = 200;
 
+const SESSIONS_KEY = "ku_mind_chat_sessions";
+
+interface Session {
+  id: string;
+  createdAt: string;
+  preview: string;
+}
+
 const defaultWelcomeMessage = (): Message => ({
   id: "1",
   role: "assistant",
@@ -75,6 +83,23 @@ function serializeMessagesForStorage(messages: Message[]): string {
       timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
     }))
   );
+}
+
+function loadSessions(): Session[] {
+  try {
+    const raw = localStorage.getItem(SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveSessions(sessions: Session[]) {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+function getSessionKey(sessionId: string): string {
+  const user = JSON.parse(localStorage.getItem("ku_mind_user") || "{}");
+  const scope = user.email ?? String(user.id ?? "guest");
+  return `${CHAT_STORAGE_PREFIX}_${scope}_${sessionId}`;
 }
 
 const randomPick = (items: string[]) => items[Math.floor(Math.random() * items.length)];
@@ -145,17 +170,51 @@ export default function Chat() {
 
   const user = JSON.parse(localStorage.getItem("ku_mind_user") || "{}");
 
+  const [sessions, setSessions] = useState<Session[]>(loadSessions);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
+    const s = loadSessions();
+    return s.length > 0 ? s[0].id : Date.now().toString();
+  });
+
+  const handleNewChat = () => {
+    // save preview ของ session ปัจจุบัน
+    const preview = messages.find(m => m.role === "user")?.content ?? "New Chat";
+    const updated = [
+      { id: currentSessionId, createdAt: new Date().toISOString(), preview: preview.slice(0, 30) },
+      ...sessions.filter(s => s.id !== currentSessionId),
+    ];
+    saveSessions(updated);
+    setSessions(updated);
+
+    // เปิด session ใหม่
+    const newId = Date.now().toString();
+    setCurrentSessionId(newId);
+    setMessages([defaultWelcomeMessage()]);
+  };
+
+  const handleSwitchSession = (sessionId: string) => {
+    const key = getSessionKey(sessionId);
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      setMessages(parsed);
+    } else {
+      setMessages([defaultWelcomeMessage()]);
+    }
+    setCurrentSessionId(sessionId);
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(getChatStorageKey(), serializeMessagesForStorage(messages));
+      localStorage.setItem(getSessionKey(currentSessionId), serializeMessagesForStorage(messages));
     } catch {
       /* quota or private mode */
     }
-  }, [messages]);
+  }, [messages, currentSessionId]);
 
   const handleLogout = () => {
     try {
@@ -352,6 +411,25 @@ export default function Chat() {
 
           <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-700">
             เริ่มด้วยการเล่าเหตุการณ์วันนี้ หรือพิมพ์ความรู้สึกสั้นๆ แล้วเราจะช่วยสะท้อนให้ชัดขึ้น
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              onClick={handleNewChat}
+              className="flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            >
+              <MessageCircle className="h-4 w-4" />
+              New Chat
+            </button>
+            {sessions.map(s => (
+              <button
+                key={s.id}
+                onClick={() => handleSwitchSession(s.id)}
+                className={`rounded-2xl px-4 py-2 text-left text-sm ${currentSessionId === s.id ? "bg-emerald-100 font-semibold text-emerald-800" : "bg-white/80 text-emerald-700 hover:bg-emerald-50"}`}
+              >
+                {s.preview || "Chat"}
+              </button>
+            ))}
           </div>
         </aside>
 
