@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Heart, X } from "lucide-react";
+import { Shield, Heart } from "lucide-react";
 
 interface ConsentModalProps {
   onAccept: () => void;

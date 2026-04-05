@@ -33,6 +33,68 @@ interface Session {
   id: string;
   createdAt: string;
   preview: string;
+  subtitle?: string;
+  themeKey?: string;
+}
+
+function deriveSessionPreview(message: string, suggestedTitle?: string): string {
+  const title = suggestedTitle?.trim();
+  if (title) return title.slice(0, 36);
+
+  const compact = message.replace(/\s+/g, " ").trim();
+  if (!compact) return "New Chat";
+
+  const cleaned = compact
+    .replace(/^(วันนี้|ช่วงนี้|คือ|เรา|ฉัน|ผม|หนู)\s*/u, "")
+    .replace(/\s*(ค่ะ|ครับ|นะ|น่ะ)$/u, "");
+
+  return (cleaned || compact).slice(0, 36);
+}
+
+const THEME_LABELS: Record<string, string> = {
+  stress: "เครียด",
+  work: "งาน",
+  sleep: "การนอน",
+  loneliness: "ความเหงา",
+  relationship: "ความสัมพันธ์",
+  mood: "อารมณ์",
+  finance: "การเงิน",
+  health: "สุขภาพ",
+};
+
+function deriveThemeKey(themes: string[] = []): string {
+  return themes
+    .filter((theme) => THEME_LABELS[theme])
+    .slice(0, 2)
+    .sort()
+    .join("|");
+}
+
+function deriveSessionSubtitle(themes: string[] = []): string {
+  const labels = themes
+    .filter((theme) => THEME_LABELS[theme])
+    .slice(0, 2)
+    .map((theme) => THEME_LABELS[theme]);
+
+  if (labels.length === 0) return "วันนี้";
+  return `${labels.join(" • ")} • วันนี้`;
+}
+
+function upsertCurrentSession(
+  sessions: Session[],
+  currentSessionId: string,
+  patch: Partial<Session>,
+): Session[] {
+  const current = sessions.find((s) => s.id === currentSessionId);
+  const nextCurrent: Session = {
+    id: currentSessionId,
+    createdAt: current?.createdAt ?? new Date().toISOString(),
+    preview: patch.preview ?? current?.preview ?? "New Chat",
+    subtitle: patch.subtitle ?? current?.subtitle,
+    themeKey: patch.themeKey ?? current?.themeKey,
+  };
+
+  return [nextCurrent, ...sessions.filter((s) => s.id !== currentSessionId)];
 }
 
 const defaultWelcomeMessage = (): Message => ({
@@ -55,23 +117,6 @@ function getChatStorageKey(): string {
   }
 }
 
-function loadMessagesFromStorage(): Message[] {
-  try {
-    const raw = localStorage.getItem(getChatStorageKey());
-    if (!raw) return [defaultWelcomeMessage()];
-    const parsed = JSON.parse(raw) as Array<
-      Omit<Message, "timestamp"> & { timestamp: string }
-    >;
-    if (!Array.isArray(parsed) || parsed.length === 0) return [defaultWelcomeMessage()];
-    return parsed.map((m) => ({
-      ...m,
-      timestamp: new Date(m.timestamp),
-    }));
-  } catch {
-    return [defaultWelcomeMessage()];
-  }
-}
-
 function serializeMessagesForStorage(messages: Message[]): string {
   const trimmed =
     messages.length > MAX_STORED_MESSAGES
@@ -88,7 +133,16 @@ function serializeMessagesForStorage(messages: Message[]): string {
 function loadSessions(): Session[] {
   try {
     const raw = localStorage.getItem(SESSIONS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Partial<Session>>;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((session) => ({
+      id: session.id ?? Date.now().toString(),
+      createdAt: session.createdAt ?? new Date().toISOString(),
+      preview: session.preview ?? "New Chat",
+      subtitle: session.subtitle,
+      themeKey: session.themeKey,
+    }));
   } catch { return []; }
 }
 
@@ -186,14 +240,35 @@ export default function Chat() {
     const s = loadSessions();
     return s.length > 0 ? s[0].id : Date.now().toString();
   });
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const currentSession = sessions.find((session) => session.id === currentSessionId);
+
+  const commitSessionTitle = (sessionId: string) => {
+    const nextTitle = editingTitle.trim();
+    const updated = sessions.map((session) =>
+      session.id === sessionId
+        ? { ...session, preview: nextTitle || session.preview || "New Chat" }
+        : session
+    );
+    saveSessions(updated);
+    setSessions(updated);
+    setEditingSessionId(null);
+    setEditingTitle("");
+  };
+
+  const startEditingSession = (sessionId: string, currentTitle: string) => {
+    setEditingSessionId(sessionId);
+    setEditingTitle(currentTitle);
+  };
 
   const handleNewChat = () => {
     const preview = messages.find(m => m.role === "user")?.content ?? "New Chat";
     const newId = Date.now().toString();
     
     const updated = [
-      { id: newId, createdAt: new Date().toISOString(), preview: "New Chat" },
-      { id: currentSessionId, createdAt: new Date().toISOString(), preview: preview.slice(0, 30) },
+      { id: newId, createdAt: new Date().toISOString(), preview: "New Chat", subtitle: "วันนี้" },
+      { id: currentSessionId, createdAt: new Date().toISOString(), preview: deriveSessionPreview(preview), subtitle: "วันนี้" },
       ...sessions.filter(s => s.id !== currentSessionId),
     ];
     saveSessions(updated);
@@ -280,10 +355,10 @@ export default function Chat() {
 
     setMessages((prev) => [...prev, userMessage]);
     // เอา session ปัจจุบันขึ้นบนสุด
-    const reordered = [
-      { id: currentSessionId, createdAt: new Date().toISOString(), preview: messageText.slice(0, 30) },
-      ...sessions.filter(s => s.id !== currentSessionId),
-    ];
+    const reordered = upsertCurrentSession(sessions, currentSessionId, {
+      preview: deriveSessionPreview(messageText),
+      subtitle: sessions.find((s) => s.id === currentSessionId)?.subtitle ?? "วันนี้",
+    });
     saveSessions(reordered);
     setSessions(reordered);
     setInput("");
@@ -308,6 +383,23 @@ export default function Chat() {
 
       if (response.ok) {
         const data = await response.json();
+        const nextThemeKey = deriveThemeKey(data.nlp_context?.themes);
+        const nextSubtitle = deriveSessionSubtitle(data.nlp_context?.themes);
+        const shouldRename =
+          !currentSession?.preview ||
+          currentSession.preview === "New Chat" ||
+          !currentSession.themeKey ||
+          (!!nextThemeKey && nextThemeKey !== currentSession.themeKey) ||
+          (!!data.title_suggestion && data.title_suggestion !== currentSession.preview);
+        const updatedSessions = upsertCurrentSession(sessions, currentSessionId, {
+          preview: shouldRename
+            ? deriveSessionPreview(userMessage.content, data.title_suggestion)
+            : currentSession?.preview ?? deriveSessionPreview(userMessage.content, data.title_suggestion),
+          subtitle: nextSubtitle,
+          themeKey: nextThemeKey || currentSession?.themeKey,
+        });
+        saveSessions(updatedSessions);
+        setSessions(updatedSessions);
         setMessages((prev) => [
           ...prev,
           {
@@ -328,6 +420,12 @@ export default function Chat() {
     } catch {
       const lastAssistant = messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content;
       const fallback = createFallbackReply(userMessage.content, lastAssistant);
+      const updatedSessions = upsertCurrentSession(sessions, currentSessionId, {
+        preview: deriveSessionPreview(userMessage.content),
+        subtitle: sessions.find((s) => s.id === currentSessionId)?.subtitle ?? "วันนี้",
+      });
+      saveSessions(updatedSessions);
+      setSessions(updatedSessions);
       setMessages((prev) => [
         ...prev,
         {
@@ -466,12 +564,42 @@ export default function Chat() {
             </button>
             {sessions.map(s => (
               <div key={s.id} className="flex items-center gap-1">
-                <button
-                  onClick={() => handleSwitchSession(s.id)}
-                  className={`flex-1 rounded-2xl px-4 py-2 text-left text-sm ${currentSessionId === s.id ? "bg-emerald-100 font-semibold text-emerald-800" : "bg-white/80 text-emerald-700 hover:bg-emerald-50"}`}
-                >
-                  {s.preview || "Chat"}
-                </button>
+                {editingSessionId === s.id ? (
+                  <div className="flex-1 rounded-2xl border border-emerald-200 bg-white px-3 py-2">
+                    <input
+                      autoFocus
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={() => commitSessionTitle(s.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commitSessionTitle(s.id);
+                        }
+                        if (e.key === "Escape") {
+                          setEditingSessionId(null);
+                          setEditingTitle("");
+                        }
+                      }}
+                      className="w-full bg-transparent text-sm font-semibold text-emerald-800 outline-none"
+                    />
+                    <span className="mt-0.5 block truncate text-[11px] font-normal text-emerald-500">
+                      {s.subtitle || "วันนี้"}
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleSwitchSession(s.id)}
+                    onDoubleClick={() => startEditingSession(s.id, s.preview || "Chat")}
+                    title="ดับเบิลคลิกเพื่อเปลี่ยนชื่อห้อง"
+                    className={`flex-1 rounded-2xl px-4 py-2 text-left text-sm ${currentSessionId === s.id ? "bg-emerald-100 font-semibold text-emerald-800" : "bg-white/80 text-emerald-700 hover:bg-emerald-50"}`}
+                  >
+                    <span className="block truncate">{s.preview || "Chat"}</span>
+                    <span className="mt-0.5 block truncate text-[11px] font-normal text-emerald-500">
+                      {s.subtitle || "วันนี้"}
+                    </span>
+                  </button>
+                )}
                 <button
                   onClick={() => handleDeleteSession(s.id)}
                   className="rounded-full p-1 text-emerald-400 hover:bg-red-50 hover:text-red-500"
@@ -489,8 +617,12 @@ export default function Chat() {
 
           <div className="flex items-center justify-between border-b border-emerald-100/70 px-4 py-3 md:px-5">
             <div>
-              <h3 className="text-base font-bold text-emerald-900 md:text-lg">พื้นที่สนทนาแบบไม่ตัดสิน</h3>
-              <p className="text-xs text-emerald-600 md:text-sm">เล่าได้เต็มที่ เราจะช่วยคุณค่อยๆ จัดการความคิด</p>
+              <h3 className="text-base font-bold text-emerald-900 md:text-lg">
+                {currentSession?.preview || "พื้นที่สนทนาแบบไม่ตัดสิน"}
+              </h3>
+              <p className="text-xs text-emerald-600 md:text-sm">
+                {currentSession?.subtitle || "เล่าได้เต็มที่ เราจะช่วยคุณค่อยๆ จัดการความคิด"}
+              </p>
             </div>
             <div className="hidden items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 md:inline-flex">
               <MessageCircle className="h-3.5 w-3.5" />

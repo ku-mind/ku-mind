@@ -1,4 +1,3 @@
-from transformers import pipeline
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 import logging
@@ -24,6 +23,8 @@ class NLPService:
         if self._sentiment_model is None:
             try:
                 # ใช้ model ที่ lightweight และไม่ต้องใช้ PIL
+                from transformers import pipeline
+
                 self._sentiment_model = pipeline(
                     "text-classification",
                     model="cardiffnlp/twitter-roberta-base-sentiment-latest",
@@ -43,6 +44,8 @@ class NLPService:
         if self._emotion_model is None:
             try:
                 # Emotion detection model
+                from transformers import pipeline
+
                 self._emotion_model = pipeline(
                     "text-classification",
                     model="j-hartmann/emotion-english-distilroberta-base",
@@ -61,6 +64,8 @@ class NLPService:
         self._ensure_initialized()
         if self._summarizer is None:
             try:
+                from transformers import pipeline
+
                 self._summarizer = pipeline(
                     "summarization",
                     model="facebook/bart-large-cnn",

@@ -3,6 +3,7 @@ import httpx
 from app.core.config import settings
 from app.schemas.chat import ChatTurn
 from app.services.nlp_service import nlp_service
+from app.services.risk_service import risk_service
 
 
 SYSTEM_PROMPT = """
@@ -23,6 +24,52 @@ Rules:
 
 
 class ChatService:
+    def _suggest_session_title(self, message: str, nlp_context: dict, risk_context: dict) -> str:
+        text = " ".join(message.strip().split())
+        if not text:
+            return "บทสนทนาใหม่"
+
+        if risk_context["risk_level"] == "high":
+            return "ต้องการความปลอดภัยทันที"
+
+        theme_titles = {
+            "work": "จัดการงานและเดดไลน์",
+            "stress": "รับมือความเครียด",
+            "sleep": "ปัญหาการนอน",
+            "loneliness": "ความเหงาและการอยู่ลำพัง",
+            "relationship": "ความสัมพันธ์ที่ค้างคา",
+            "mood": "สำรวจความรู้สึกข้างใน",
+            "finance": "ความกังวลเรื่องการเงิน",
+            "health": "ดูแลใจระหว่างไม่สบาย",
+        }
+
+        for theme in nlp_context.get("themes", []):
+            if theme in theme_titles:
+                return theme_titles[theme]
+
+        sanitized = text.replace("\n", " ")
+        fillers = [
+            "วันนี้",
+            "ช่วงนี้",
+            "แบบว่า",
+            "คือ",
+            "หนู",
+            "เรา",
+            "ฉัน",
+            "ผม",
+            "ค่ะ",
+            "ครับ",
+            "นะ",
+            "นิดหน่อย",
+        ]
+        for filler in fillers:
+            sanitized = sanitized.replace(filler, " ")
+        sanitized = " ".join(sanitized.split())
+        if not sanitized:
+            sanitized = text
+
+        return sanitized[:28].rstrip(" ,.-") or "บทสนทนาใหม่"
+
     def _analyze_message_context(self, message: str) -> dict:
         """
         วิเคราะห์ข้อความด้วย NLP เพื่อปรับ response ให้เหมาะสม
@@ -33,16 +80,19 @@ class ChatService:
                 "sentiment": analysis["sentiment"]["label"],
                 "emotion": analysis["emotion"]["primary_emotion"],
                 "themes": analysis["themes"],
-                "nlp_risk": analysis["nlp_risk_score"]
+                "nlp_risk": analysis["nlp_risk_score"],
             }
-        except Exception as e:
+        except Exception:
             # Fallback if NLP fails
             return {
                 "sentiment": "NEUTRAL",
                 "emotion": "neutral",
                 "themes": [],
-                "nlp_risk": 0.0
+                "nlp_risk": 0.0,
             }
+
+    def _build_risk_context(self, message: str, nlp_context: dict) -> dict:
+        return risk_service.assess_text(message, nlp_context.get("nlp_risk", 0.0))
 
     def _build_enhanced_system_prompt(self, message: str, context: dict) -> str:
         """
@@ -85,20 +135,41 @@ class ChatService:
             return enhanced_prompt
 
         return base_prompt
+
     async def reply(self, message: str, history: list[ChatTurn] | None = None) -> str:
+        result = await self.reply_with_context(message, history)
+        return result["reply"]
+
+    async def reply_with_context(self, message: str, history: list[ChatTurn] | None = None) -> dict:
         # วิเคราะห์ข้อความด้วย NLP
         nlp_context = self._analyze_message_context(message)
+        risk_context = self._build_risk_context(message, nlp_context)
+
+        if risk_context["requires_crisis_flow"]:
+            return {
+                "reply": risk_service.build_crisis_response(),
+                "nlp_context": nlp_context,
+                "risk_assessment": risk_context,
+                "response_mode": "crisis_override",
+                "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
+            }
 
         # สร้าง enhanced system prompt
         enhanced_system_prompt = self._build_enhanced_system_prompt(message, nlp_context)
 
         # ถ้าไม่มี Gemini API ให้ fallback response จาก local heuristic
         if not settings.gemini_api_key:
-            return (
-                f"ขอโทษนะคะ ขณะนี้ระบบ Gemini ยังไม่เปิดใช้งาน แต่ฉันเข้าใจว่า\n"
-                f"คุณพูดว่า: \"{message}\"\n"
-                "ลองเริ่มจากแยกความรู้สึกออกเป็น 2-3 จุด แล้วฉันช่วยคุณจัดลำดับได้"
-            )
+            return {
+                "reply": (
+                    f"ขอโทษนะคะ ขณะนี้ระบบ Gemini ยังไม่เปิดใช้งาน แต่ฉันเข้าใจว่า\n"
+                    f"คุณพูดว่า: \"{message}\"\n"
+                    "ลองเริ่มจากแยกความรู้สึกออกเป็น 2-3 จุด แล้วฉันช่วยคุณจัดลำดับได้"
+                ),
+                "nlp_context": nlp_context,
+                "risk_assessment": risk_context,
+                "response_mode": "local_fallback",
+                "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
+            }
 
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -131,31 +202,30 @@ class ChatService:
             reply_text = self._extract_text(data)
             # ถ้า Gemini คืนคำตอบสั้นเกินไป, ให้เติมด้วยข้อมูล context เล็กน้อย
             if len(reply_text.strip()) < 20:
-                fallback = (
+                reply_text = (
                     f"ฉันเข้าใจว่าคุณพูดว่า: {message}. "
                     "ขอแนะนำให้ลองเริ่มจากสำรวจว่าอารมณ์ตอนนี้เป็นอย่างไร แล้วทำอะไรได้บ้างทันที"
                 )
-                return fallback
-            return reply_text
+            return {
+                "reply": reply_text,
+                "nlp_context": nlp_context,
+                "risk_assessment": risk_context,
+                "response_mode": "llm",
+                "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
+            }
         except (httpx.HTTPStatusError, httpx.HTTPError) as exc:
             # fallback ด้วยข้อความที่ตรงประเด็นและเชื่อมกับ input
-            return (
-                f"ขอโทษค่ะ พบปัญหาเชื่อมต่อ Gemini: {str(exc)}\n"
-                f"คุณบอกว่า: '{message}'\n"
-                "ฉันยังอยู่ตรงนี้และช่วยได้: ลองเล่าต่อว่าอยากให้ดีขึ้นเรื่องอะไร"
-            )
-
-    async def reply_with_context(self, message: str, history: list[ChatTurn] | None = None) -> dict:
-        """
-        Reply พร้อมส่ง NLP context กลับไปด้วย
-        """
-        nlp_context = self._analyze_message_context(message)
-        reply_text = await self.reply(message, history)
-
-        return {
-            "reply": reply_text,
-            "nlp_context": nlp_context
-        }
+            return {
+                "reply": (
+                    f"ขอโทษค่ะ พบปัญหาเชื่อมต่อ Gemini: {str(exc)}\n"
+                    f"คุณบอกว่า: '{message}'\n"
+                    "ฉันยังอยู่ตรงนี้และช่วยได้: ลองเล่าต่อว่าอยากให้ดีขึ้นเรื่องอะไร"
+                ),
+                "nlp_context": nlp_context,
+                "risk_assessment": risk_context,
+                "response_mode": "llm_error_fallback",
+                "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
+            }
 
     def _extract_text(self, data: dict) -> str:
         candidates = data.get("candidates") or []
