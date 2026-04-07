@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Activity,
   ArrowRight,
   Heart,
   AlertCircle,
@@ -392,7 +393,7 @@ export default function CheckIn() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => {
                 setResult(null);
@@ -415,6 +416,13 @@ export default function CheckIn() {
             >
               เข้าแชทกับ KU Mind
               <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigate("/insights")}
+              className="flex-1 px-6 py-3 bg-emerald-950 text-white rounded-lg font-semibold hover:bg-emerald-900 transition-colors flex items-center justify-center gap-2"
+            >
+              ดู Dashboard
+              <Activity className="w-4 h-4" />
             </button>
           </div>
           <CheckInHistory />
@@ -505,6 +513,13 @@ export default function CheckIn() {
           </div>
         </form>
         <CheckInHistory />
+        <button
+          onClick={() => navigate("/insights")}
+          className="mt-4 w-full px-6 py-3 bg-emerald-950 text-white rounded-lg font-semibold hover:bg-emerald-900 transition-colors flex items-center justify-center gap-2"
+        >
+          ดู Dashboard แนวโน้มสุขภาพใจ
+          <Activity className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );

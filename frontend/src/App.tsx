@@ -5,6 +5,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 import Chat from "./pages/chat";
 import CheckIn from "./pages/checkin";
+import Insights from "./pages/insights";
 import ConsentModal from "./components/ConsentModal";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -56,6 +57,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <Chat />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/insights"
+          element={
+            <PrivateRoute>
+              <Insights />
             </PrivateRoute>
           }
         />

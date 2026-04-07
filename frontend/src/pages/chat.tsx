@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Brain,
   Heart,
+  Activity,
   LogOut,
   MessageCircle,
   Send,
@@ -404,6 +405,10 @@ export default function Chat() {
     navigate("/checkin");
   };
 
+  const handleInsights = () => {
+    navigate("/insights");
+  };
+
   const sendMessage = async (rawMessage: string) => {
     const messageText = rawMessage.trim();
     if (!messageText || isLoading) return;
@@ -569,6 +574,14 @@ export default function Chat() {
             >
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:block">Check-in</span>
+            </button>
+            <button
+              onClick={handleInsights}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 transition-all hover:bg-emerald-50"
+              title="ดูแนวโน้มสุขภาพใจ"
+            >
+              <Activity className="h-4 w-4" />
+              <span className="hidden sm:block">Insights</span>
             </button>
             <button
               onClick={handleLogout}
