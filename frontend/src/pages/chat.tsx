@@ -808,9 +808,20 @@ export default function Chat() {
               </button>
             </div>
 
-            <p className="mt-2 text-center text-xs text-emerald-500">
-              <MessageCircle className="mr-1 inline h-3 w-3" />
+            <p className="mt-2 text-center text-sm font-medium text-emerald-500">
+              <MessageCircle className="mr-1 inline h-4 w-4" />
               ระบบนี้ไม่สามารถทดแทนการรักษาจากผู้เชี่ยวชาญได้
+            </p>
+            <p className="mt-1 text-center text-sm font-medium text-emerald-600">
+              อยากคุยกับคนตัวเป็นๆ{" "}
+              <a
+                href="https://kuhappyplace.sa.ku.ac.th/Exqe/Login/Login.php"
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 transition-colors hover:text-emerald-900"
+              >
+                ติดต่อ KU Happy Place
+              </a>
             </p>
           </div>
         </section>

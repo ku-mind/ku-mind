@@ -1,13 +1,20 @@
-from fastapi import FastAPI, HTTPException, Request
+from datetime import datetime
+
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 from typing import Literal
 
+from app.api.deps import get_current_user
 from app.api.router import api_router
 from app.core.config import settings
+from app.db.session import get_db
 from app.db.session import Base, engine
+from app.models import CheckInResult
+from app.models.user import User
 from app.services.nlp_service import nlp_service
 
 app = FastAPI(title=settings.app_name)
@@ -70,6 +77,17 @@ class RiskResult(BaseModel):
     recommendations: list[str]
     referral_options: list[dict]
     summary: str
+
+class CheckInHistoryItem(RiskResult):
+    id: int
+    created_at: datetime
+    workload: int
+    sleep_hours: float
+    fatigue: int
+    social_pressure: int
+    deadline_count: int
+    mood: int
+    additional_text: str | None = None
  
 # ── Scoring Engine ───────────────────────────────────────────────────────────
  
@@ -254,13 +272,80 @@ def build_summary(level: str, score: float, data: CheckInData) -> str:
  
 # ── Routes ───────────────────────────────────────────────────────────────────
 
+def save_checkin_result(
+    db: Session,
+    user: User,
+    data: CheckInData,
+    result: RiskResult,
+    additional_text: str | None = None,
+) -> None:
+    db.add(
+        CheckInResult(
+            user_id=user.id,
+            workload=data.workload,
+            sleep_hours=data.sleep_hours,
+            fatigue=data.fatigue,
+            social_pressure=data.social_pressure,
+            deadline_count=data.deadline_count,
+            mood=data.mood,
+            additional_text=additional_text,
+            risk_level=result.risk_level,
+            risk_score=result.risk_score,
+            score_breakdown=result.score_breakdown,
+            recommendations=result.recommendations,
+            referral_options=result.referral_options,
+            summary=result.summary,
+        )
+    )
+    db.commit()
+
+
+def build_checkin_history_item(row: CheckInResult) -> CheckInHistoryItem:
+    return CheckInHistoryItem(
+        id=row.id,
+        created_at=row.created_at,
+        workload=row.workload,
+        sleep_hours=row.sleep_hours,
+        fatigue=row.fatigue,
+        social_pressure=row.social_pressure,
+        deadline_count=row.deadline_count,
+        mood=row.mood,
+        additional_text=row.additional_text,
+        risk_level=row.risk_level,
+        risk_score=row.risk_score,
+        score_breakdown=row.score_breakdown,
+        recommendations=row.recommendations,
+        referral_options=row.referral_options,
+        summary=row.summary,
+    )
+
+
+@app.get("/api/checkins", response_model=list[CheckInHistoryItem])
+def list_checkins(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(CheckInResult)
+        .filter(CheckInResult.user_id == user.id)
+        .order_by(CheckInResult.created_at.desc(), CheckInResult.id.desc())
+        .limit(50)
+        .all()
+    )
+    return [build_checkin_history_item(row) for row in rows]
+
+
 @app.post("/api/checkin", response_model=RiskResult)
-def submit_checkin(data: CheckInData):
+def submit_checkin(
+    data: CheckInData,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     result = compute_risk_score(data)
     score = result["score"]
     level = get_risk_level(score)
 
-    return RiskResult(
+    risk_result = RiskResult(
         risk_level=level,
         risk_score=score,
         score_breakdown=result["breakdown"],
@@ -268,10 +353,16 @@ def submit_checkin(data: CheckInData):
         referral_options=get_referral_options(level),
         summary=build_summary(level, score, data),
     )
+    save_checkin_result(db, user, data, risk_result)
+    return risk_result
 
 
 @app.post("/api/checkin-with-text", response_model=RiskResult)
-def submit_checkin_with_text(data: CheckInWithTextData):
+def submit_checkin_with_text(
+    data: CheckInWithTextData,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Check-in พร้อมข้อความเพิ่มเติมสำหรับ NLP analysis
     """
@@ -286,7 +377,7 @@ def submit_checkin_with_text(data: CheckInWithTextData):
         if "stress" in nlp_themes and "พักสมอง" not in " ".join(recommendations):
             recommendations.insert(0, "จากที่คุณเล่า ดูเหมือนจะเครียดค่อนข้างมาก — ลองหาเวลาพักสัก 10-15 นาทีก่อนนะ")
 
-    return RiskResult(
+    risk_result = RiskResult(
         risk_level=level,
         risk_score=score,
         score_breakdown=combined_result["breakdown"],
@@ -294,6 +385,8 @@ def submit_checkin_with_text(data: CheckInWithTextData):
         referral_options=get_referral_options(level),
         summary=build_summary(level, score, data),
     )
+    save_checkin_result(db, user, data, risk_result, data.additional_text)
+    return risk_result
 
 
 @app.get("/health")

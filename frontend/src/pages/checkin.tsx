@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -41,6 +41,12 @@ interface RiskResult {
   summary: string;
 }
 
+interface CheckInHistoryItem extends RiskResult, CheckInData {
+  id: number;
+  created_at: string;
+  additional_text?: string | null;
+}
+
 export default function CheckIn() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<CheckInData>({
@@ -53,6 +59,7 @@ export default function CheckIn() {
   });
 
   const [result, setResult] = useState<RiskResult | null>(null);
+  const [history, setHistory] = useState<CheckInHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -96,6 +103,31 @@ export default function CheckIn() {
     }));
   };
 
+  const fetchHistory = async () => {
+    const token = localStorage.getItem("ku_mind_token");
+    if (!token) return;
+
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || "";
+      const response = await fetch(`${apiBase}/api/checkins`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) return;
+
+      const data: CheckInHistoryItem[] = await response.json();
+      setHistory(data);
+    } catch {
+      /* history is optional for the page */
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -103,12 +135,14 @@ export default function CheckIn() {
 
     const apiBase = import.meta.env.VITE_API_URL || "";
     const apiUrl = `${apiBase}/api/checkin`;
+    const token = localStorage.getItem("ku_mind_token");
 
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(formData),
       });
@@ -120,6 +154,7 @@ export default function CheckIn() {
 
       const data: RiskResult = await response.json();
       setResult(data);
+      await fetchHistory();
     } catch (err) {
       setError(
         err instanceof Error
@@ -168,6 +203,48 @@ export default function CheckIn() {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const formatCheckInDate = (value: string) =>
+    new Date(value).toLocaleString("th-TH", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+  const CheckInHistory = () => {
+    const levelLabels = {
+      low: "ต่ำ",
+      medium: "ปานกลาง",
+      high: "สูง",
+    };
+
+    if (history.length === 0) return null;
+
+    return (
+      <div className="mt-8 rounded-lg border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-50">
+        <h3 className="mb-4 text-lg font-bold text-emerald-900">ประวัติ Check-in</h3>
+        <div className="space-y-3">
+          {history.map((item) => (
+            <div key={item.id} className="rounded-lg border border-gray-200 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    {formatCheckInDate(item.created_at)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    งาน {item.workload}/10 · นอน {item.sleep_hours} ชม. · เหนื่อย {item.fatigue}/10 · อารมณ์ {item.mood}/10
+                  </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getRiskBadgeColor(item.risk_level)}`}>
+                  {levelLabels[item.risk_level]} · {Math.round(item.risk_score * 100)}/100
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-gray-700">{item.summary}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   if (result) {
@@ -340,6 +417,7 @@ export default function CheckIn() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+          <CheckInHistory />
         </div>
       </div>
     );
@@ -423,9 +501,10 @@ export default function CheckIn() {
 
           {/* Privacy Notice */}
           <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex justify-center items-center">
-            🔒 ข้อมูลของคุณจะเป็นส่วนตัวและไม่ถูกบันทึก
+            🔒 ข้อมูลของคุณจะเป็นส่วนตัวและไม่ถูกเผยแพร่
           </div>
         </form>
+        <CheckInHistory />
       </div>
     </div>
   );
