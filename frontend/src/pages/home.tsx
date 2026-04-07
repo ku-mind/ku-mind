@@ -20,6 +20,18 @@ export default function Home() {
     navigate("/checkin");
   };
 
+  const goToLearnMore = () => {
+    navigate("/learn-more");
+  };
+
+  const goToPrivacy = () => {
+    navigate("/privacy");
+  };
+
+  const goToTerms = () => {
+    navigate("/terms");
+  };
+
   const features = [
     {
       icon: Clock,
@@ -161,7 +173,10 @@ export default function Home() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </button>
 
-            <button className="rounded-full border-2 border-emerald-200 bg-white px-8 py-4 font-semibold text-emerald-700 transition-all hover:bg-emerald-50">
+            <button
+              onClick={goToLearnMore}
+              className="rounded-full border-2 border-emerald-200 bg-white px-8 py-4 font-semibold text-emerald-700 transition-all hover:bg-emerald-50"
+            >
               เรียนรู้เพิ่มเติม
             </button>
           </div>
@@ -327,51 +342,51 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="bg-emerald-900 py-12 text-emerald-100">
+      <footer className="bg-emerald-950 py-12 text-emerald-100">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
-          <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-white/5 p-6">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500">
                   <Heart className="h-5 w-5 text-white" fill="white" />
                 </div>
-                <span className="font-semibold text-white">AI ที่ปรึกษาด้านจิตใจ</span>
+                <span className="text-lg font-bold text-white">AI ที่ปรึกษาด้านจิตใจ</span>
               </div>
-              <p className="text-sm text-emerald-300">พื้นที่ปลอดภัยสำหรับการดูแลสุขภาพจิตของคุณ</p>
+              <p className="mt-auto text-sm leading-relaxed text-emerald-200">พื้นที่ปลอดภัยสำหรับการดูแลสุขภาพจิตของคุณ</p>
             </div>
 
-            <div>
-              <h4 className="mb-4 font-semibold text-white">แหล่งความช่วยเหลือ</h4>
-              <ul className="space-y-2 text-sm text-emerald-300">
+            <div className="h-full rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h4 className="mb-4 text-lg font-bold text-white">แหล่งความช่วยเหลือ</h4>
+              <ul className="space-y-3 text-sm leading-relaxed text-emerald-200">
                 <li>สายด่วนสุขภาพจิต: 1323</li>
                 <li>สายด่วนป้องกันการฆ่าตัวตาย: 1422</li>
                 <li>กรมสุขภาพจิต: 02-149-5555</li>
               </ul>
             </div>
 
-            <div>
-              <h4 className="mb-4 font-semibold text-white">เกี่ยวกับเรา</h4>
-              <ul className="space-y-2 text-sm text-emerald-300">
+            <div className="h-full rounded-3xl border border-white/10 bg-white/5 p-6">
+              <h4 className="mb-4 text-lg font-bold text-white">เกี่ยวกับเรา</h4>
+              <ul className="space-y-3 text-sm leading-relaxed text-emerald-200">
                 <li>
-                  <a href="#" className="transition-colors hover:text-white">
+                  <button onClick={goToLearnMore} className="text-left transition-colors hover:text-white">
                     เกี่ยวกับโครงการ
-                  </a>
+                  </button>
                 </li>
                 <li>
-                  <a href="#" className="transition-colors hover:text-white">
+                  <button onClick={goToPrivacy} className="text-left transition-colors hover:text-white">
                     นโยบายความเป็นส่วนตัว
-                  </a>
+                  </button>
                 </li>
                 <li>
-                  <a href="#" className="transition-colors hover:text-white">
+                  <button onClick={goToTerms} className="text-left transition-colors hover:text-white">
                     ข้อกำหนดการใช้งาน
-                  </a>
+                  </button>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-emerald-800 pt-8 text-center text-sm text-emerald-400">
+          <div className="mt-8 border-t border-white/10 pt-6 text-center text-sm text-emerald-300">
             <p>© 2026 AI ที่ปรึกษาด้านจิตใจ. สร้างขึ้นด้วยความห่วงใยและเทคโนโลยี</p>
           </div>
         </div>
