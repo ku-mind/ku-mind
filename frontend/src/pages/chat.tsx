@@ -27,7 +27,8 @@ interface Message {
 const CHAT_STORAGE_PREFIX = "ku_mind_chat_messages";
 const MAX_STORED_MESSAGES = 200;
 
-const SESSIONS_KEY = "ku_mind_chat_sessions";
+const SESSIONS_STORAGE_PREFIX = "ku_mind_chat_sessions";
+const LEGACY_SESSIONS_KEY = "ku_mind_chat_sessions";
 
 interface Session {
   id: string;
@@ -105,15 +106,14 @@ const defaultWelcomeMessage = (): Message => ({
   timestamp: new Date(),
 });
 
-function getChatStorageKey(): string {
+function getCurrentUserScope(): string {
   try {
     const raw = localStorage.getItem("ku_mind_user");
-    if (!raw) return `${CHAT_STORAGE_PREFIX}_guest`;
+    if (!raw) return "guest";
     const u = JSON.parse(raw) as { email?: string; id?: number };
-    const scope = u.email ?? String(u.id ?? "guest");
-    return `${CHAT_STORAGE_PREFIX}_${scope}`;
+    return u.email ?? String(u.id ?? "guest");
   } catch {
-    return `${CHAT_STORAGE_PREFIX}_guest`;
+    return "guest";
   }
 }
 
@@ -130,9 +130,8 @@ function serializeMessagesForStorage(messages: Message[]): string {
   );
 }
 
-function loadSessions(): Session[] {
+function normalizeSessions(raw: string | null): Session[] {
   try {
-    const raw = localStorage.getItem(SESSIONS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Array<Partial<Session>>;
     if (!Array.isArray(parsed)) return [];
@@ -143,17 +142,57 @@ function loadSessions(): Session[] {
       subtitle: session.subtitle,
       themeKey: session.themeKey,
     }));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
+}
+
+function getSessionsKey(scope = getCurrentUserScope()): string {
+  return `${SESSIONS_STORAGE_PREFIX}_${scope}`;
+}
+
+function getSessionKey(sessionId: string, scope = getCurrentUserScope()): string {
+  return `${CHAT_STORAGE_PREFIX}_${scope}_${sessionId}`;
+}
+
+function hasMeaningfulHistoryForScope(sessionId: string, scope: string): boolean {
+  try {
+    const raw = localStorage.getItem(getSessionKey(sessionId, scope));
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as Array<Partial<Message>>;
+    if (!Array.isArray(parsed)) return false;
+    return parsed.some(
+      (message) =>
+        message.role === "user" ||
+        (message.role === "assistant" && message.content !== defaultWelcomeMessage().content)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function loadSessions(): Session[] {
+  const scope = getCurrentUserScope();
+  const scopedSessions = normalizeSessions(localStorage.getItem(getSessionsKey(scope)));
+  if (scopedSessions.length > 0) return scopedSessions;
+
+  const legacySessions = normalizeSessions(localStorage.getItem(LEGACY_SESSIONS_KEY)).filter((session) =>
+    hasMeaningfulHistoryForScope(session.id, scope)
+  );
+
+  if (legacySessions.length > 0) {
+    saveSessions(legacySessions);
+  }
+
+  return legacySessions;
 }
 
 function saveSessions(sessions: Session[]) {
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+  localStorage.setItem(getSessionsKey(), JSON.stringify(sessions));
 }
 
-function getSessionKey(sessionId: string): string {
-  const user = JSON.parse(localStorage.getItem("ku_mind_user") || "{}");
-  const scope = user.email ?? String(user.id ?? "guest");
-  return `${CHAT_STORAGE_PREFIX}_${scope}_${sessionId}`;
+function hasUserMessages(messages: Message[]): boolean {
+  return messages.some((message) => message.role === "user");
 }
 
 const randomPick = (items: string[]) => items[Math.floor(Math.random() * items.length)];
@@ -263,13 +302,41 @@ export default function Chat() {
   };
 
   const handleNewChat = () => {
-    const preview = messages.find(m => m.role === "user")?.content ?? "New Chat";
+    if (!hasUserMessages(messages)) {
+      const current = sessions.find((session) => session.id === currentSessionId);
+      const updated = current
+        ? [current, ...sessions.filter((session) => session.id !== currentSessionId)]
+        : [
+            {
+              id: currentSessionId,
+              createdAt: new Date().toISOString(),
+              preview: "New Chat",
+              subtitle: "วันนี้",
+            },
+            ...sessions,
+          ];
+
+      saveSessions(updated);
+      setSessions(updated);
+      setMessages([defaultWelcomeMessage()]);
+      return;
+    }
+
+    const preview = messages.find((m) => m.role === "user")?.content ?? "New Chat";
     const newId = Date.now().toString();
     
     const updated = [
       { id: newId, createdAt: new Date().toISOString(), preview: "New Chat", subtitle: "วันนี้" },
-      { id: currentSessionId, createdAt: new Date().toISOString(), preview: deriveSessionPreview(preview), subtitle: "วันนี้" },
-      ...sessions.filter(s => s.id !== currentSessionId),
+      {
+        id: currentSessionId,
+        createdAt: currentSession?.createdAt ?? new Date().toISOString(),
+        preview: currentSession?.preview && currentSession.preview !== "New Chat"
+          ? currentSession.preview
+          : deriveSessionPreview(preview),
+        subtitle: currentSession?.subtitle ?? "วันนี้",
+        themeKey: currentSession?.themeKey,
+      },
+      ...sessions.filter((s) => s.id !== currentSessionId),
     ];
     saveSessions(updated);
     setSessions(updated);
@@ -328,11 +395,6 @@ export default function Chat() {
   }, [messages, currentSessionId]);
 
   const handleLogout = () => {
-    try {
-      localStorage.removeItem(getChatStorageKey());
-    } catch {
-      /* ignore */
-    }
     localStorage.removeItem("ku_mind_user");
     localStorage.removeItem("ku_mind_token");
     navigate("/");

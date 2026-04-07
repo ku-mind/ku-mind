@@ -243,7 +243,8 @@ class NLPService:
             try:
                 # Disable PIL import to avoid architecture issues
                 import transformers
-                transformers.image_utils.is_pil_available = lambda: False
+                if hasattr(transformers, "image_utils"):
+                    transformers.image_utils.is_pil_available = lambda: False
 
                 from transformers import pipeline
                 self._initialized = True

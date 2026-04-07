@@ -1,9 +1,15 @@
+import asyncio
+import logging
+
 import httpx
 
 from app.core.config import settings
 from app.schemas.chat import ChatTurn
 from app.services.nlp_service import nlp_service
 from app.services.risk_service import risk_service
+
+
+logger = logging.getLogger(__name__)
 
 
 SYSTEM_PROMPT = """
@@ -24,6 +30,8 @@ Rules:
 
 
 class ChatService:
+    RETRYABLE_GEMINI_STATUS_CODES = {429, 500, 502, 503, 504}
+
     def _suggest_session_title(self, message: str, nlp_context: dict, risk_context: dict) -> str:
         text = " ".join(message.strip().split())
         if not text:
@@ -136,6 +144,38 @@ class ChatService:
 
         return base_prompt
 
+    def _build_local_support_reply(self, message: str, nlp_context: dict) -> str:
+        text = message.strip()
+        themes = set(nlp_context.get("themes", []))
+
+        if "sleep" in themes:
+            guidance = (
+                "คืนนี้ลองเริ่มจากทำให้ร่างกายช้าลงก่อน: วางจอ 20-30 นาที ดื่มน้ำหรืออาบน้ำอุ่น "
+                "แล้วจดเรื่องที่ค้างในหัวออกมาเป็นข้อสั้น ๆ"
+            )
+        elif "work" in themes or "stress" in themes:
+            guidance = (
+                "ลองแยกสิ่งที่อยู่ในหัวเป็น 3 ช่อง: ต้องทำตอนนี้, เลื่อนได้, และขอความช่วยเหลือได้ "
+                "จากนั้นเลือกทำข้อที่เล็กที่สุดก่อน 10 นาที"
+            )
+        elif "loneliness" in themes or "relationship" in themes:
+            guidance = (
+                "ความรู้สึกนี้ไม่จำเป็นต้องแบกคนเดียวนะคะ ลองเลือกคนที่ไว้ใจได้หนึ่งคน "
+                "แล้วส่งข้อความสั้น ๆ ว่าอยากมีคนรับฟังสักพัก"
+            )
+        else:
+            guidance = (
+                "ลองเริ่มจากตั้งชื่อความรู้สึกตอนนี้ 1-2 คำ แล้วดูว่าเรื่องไหนเป็นต้นเหตุหลักที่สุด "
+                "เราจะค่อย ๆ จัดมันทีละส่วนได้"
+            )
+
+        return (
+            "ขอโทษค่ะ ตอนนี้ระบบตอบกลับหลักขัดข้องชั่วคราว แต่ฉันยังช่วยประคองบทสนทนาต่อได้\n\n"
+            f"จากที่คุณเล่าว่า: \"{text}\"\n"
+            f"{guidance}\n\n"
+            "ถ้าอยากเล่าต่อ ตอนนี้ส่วนที่หนักที่สุดคือเรื่องอะไรคะ?"
+        )
+
     async def reply(self, message: str, history: list[ChatTurn] | None = None) -> str:
         result = await self.reply_with_context(message, history)
         return result["reply"]
@@ -189,15 +229,7 @@ class ChatService:
 
         try:
             async with httpx.AsyncClient(timeout=45.0) as client:
-                response = await client.post(
-                    url,
-                    params={"key": settings.gemini_api_key},
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                )
-            print("STATUS:", response.status_code)
-            print("BODY:", response.text)
-            response.raise_for_status()
+                response = await self._post_to_gemini_with_retry(client, url, payload)
             data = response.json()
             reply_text = self._extract_text(data)
             # ถ้า Gemini คืนคำตอบสั้นเกินไป, ให้เติมด้วยข้อมูล context เล็กน้อย
@@ -213,19 +245,45 @@ class ChatService:
                 "response_mode": "llm",
                 "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
             }
-        except (httpx.HTTPStatusError, httpx.HTTPError) as exc:
-            # fallback ด้วยข้อความที่ตรงประเด็นและเชื่อมกับ input
+        except (ValueError, httpx.HTTPStatusError, httpx.HTTPError) as exc:
+            logger.warning("Gemini response failed; using local fallback: %s", exc.__class__.__name__)
             return {
-                "reply": (
-                    f"ขอโทษค่ะ พบปัญหาเชื่อมต่อ Gemini: {str(exc)}\n"
-                    f"คุณบอกว่า: '{message}'\n"
-                    "ฉันยังอยู่ตรงนี้และช่วยได้: ลองเล่าต่อว่าอยากให้ดีขึ้นเรื่องอะไร"
-                ),
+                "reply": self._build_local_support_reply(message, nlp_context),
                 "nlp_context": nlp_context,
                 "risk_assessment": risk_context,
                 "response_mode": "llm_error_fallback",
                 "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
             }
+
+    async def _post_to_gemini_with_retry(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        payload: dict,
+        max_attempts: int = 3,
+    ) -> httpx.Response:
+        response: httpx.Response | None = None
+
+        for attempt in range(max_attempts):
+            response = await client.post(
+                url,
+                params={"key": settings.gemini_api_key},
+                json=payload,
+                headers={"Content-Type": "application/json"},
+            )
+
+            if response.status_code not in self.RETRYABLE_GEMINI_STATUS_CODES:
+                response.raise_for_status()
+                return response
+
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(0.6 * (attempt + 1))
+
+        if response is None:
+            raise httpx.HTTPError("Gemini request did not return a response.")
+
+        response.raise_for_status()
+        return response
 
     def _extract_text(self, data: dict) -> str:
         candidates = data.get("candidates") or []
