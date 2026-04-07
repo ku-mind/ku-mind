@@ -280,6 +280,8 @@ export default function Chat() {
     const s = loadSessions();
     return s.length > 0 ? s[0].id : Date.now().toString();
   });
+  const [sessionStartedAt, setSessionStartedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const currentSession = sessions.find((session) => session.id === currentSessionId);
@@ -320,6 +322,8 @@ export default function Chat() {
       saveSessions(updated);
       setSessions(updated);
       setMessages([defaultWelcomeMessage()]);
+      setSessionStartedAt(Date.now());
+      setNow(Date.now());
       return;
     }
 
@@ -343,6 +347,8 @@ export default function Chat() {
     setSessions(updated);
     setCurrentSessionId(newId);
     setMessages([defaultWelcomeMessage()]);
+    setSessionStartedAt(Date.now());
+    setNow(Date.now());
   };
 
   const handleDeleteSession = (sessionId: string) => {
@@ -359,6 +365,8 @@ export default function Chat() {
         const newId = Date.now().toString();
         setCurrentSessionId(newId);
         setMessages([defaultWelcomeMessage()]);
+        setSessionStartedAt(Date.now());
+        setNow(Date.now());
       }
     }
   };
@@ -373,6 +381,8 @@ export default function Chat() {
       setMessages([defaultWelcomeMessage()]);
     }
     setCurrentSessionId(sessionId);
+    setSessionStartedAt(Date.now());
+    setNow(Date.now());
   
     // เอา session ที่เลือกขึ้นบนสุด
     const updated = [
@@ -386,6 +396,11 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     try {
@@ -534,7 +549,7 @@ export default function Chat() {
     "อยากได้แผนดูแลใจแบบง่ายๆ สำหรับคืนนี้",
   ];
 
-  const sessionMinutes = Math.min(5 + messages.length * 2, 25);
+  const sessionMinutes = Math.max(1, Math.floor((now - sessionStartedAt) / 60_000));
 
   return (
     <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_#d9fff3_0%,_#d8f7f1_30%,_#d6ecee_100%)] text-emerald-900">

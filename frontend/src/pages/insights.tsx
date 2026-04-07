@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowLeft,
   CalendarDays,
+  Download,
   Heart,
   Loader2,
   MessageCircle,
@@ -71,6 +72,10 @@ const metricColors = {
   sleep: "#0284c7",
   deadline: "#d97706",
 };
+
+const REPORT_WIDTH = 1240;
+const REPORT_HEIGHT = 1754;
+const REPORT_SCALE = 4;
 
 function getLocalDayKey(date: Date): string {
   const year = date.getFullYear();
@@ -240,11 +245,477 @@ function StatCard({
   );
 }
 
+async function buildInsightsPdf({
+  averageRisk,
+  averageMood,
+  averageSleep,
+  deadlineTrend,
+  factorLabel,
+  factorValue,
+  history,
+  latest,
+  moodTrend,
+  riskTrend,
+  sleepTrend,
+}: {
+  averageRisk: number | null;
+  averageMood: number | null;
+  averageSleep: number | null;
+  deadlineTrend: TrendPoint[];
+  factorLabel: string;
+  factorValue: number | null;
+  history: CheckInHistoryItem[];
+  latest: CheckInHistoryItem;
+  moodTrend: TrendPoint[];
+  riskTrend: TrendPoint[];
+  sleepTrend: TrendPoint[];
+}) {
+  await document.fonts?.ready;
+
+  const pages = [
+    drawReportPageOne({
+      averageRisk,
+      averageMood,
+      averageSleep,
+      factorLabel,
+      factorValue,
+      latest,
+      moodTrend,
+      riskTrend,
+    }),
+    drawReportPageTwo({
+      deadlineTrend,
+      history,
+      sleepTrend,
+    }),
+  ];
+
+  return buildPdfFromJpegs(
+    pages.map((canvas) => ({
+      dataUrl: canvas.toDataURL("image/jpeg", 1),
+      height: canvas.height,
+      width: canvas.width,
+    })),
+  );
+}
+
+function createReportCanvas() {
+  const canvas = document.createElement("canvas");
+  canvas.width = REPORT_WIDTH * REPORT_SCALE;
+  canvas.height = REPORT_HEIGHT * REPORT_SCALE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is not available.");
+  ctx.scale(REPORT_SCALE, REPORT_SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, REPORT_WIDTH, REPORT_HEIGHT);
+  ctx.textBaseline = "top";
+  return { canvas, ctx };
+}
+
+function drawRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fill: string,
+  stroke?: string,
+) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, radius);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+function drawText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  {
+    color = "#064e3b",
+    font = "500 28px Noto Sans Thai, sans-serif",
+    maxWidth,
+  }: { color?: string; font?: string; maxWidth?: number } = {},
+) {
+  ctx.fillStyle = color;
+  ctx.font = font;
+  ctx.fillText(text, x, y, maxWidth);
+}
+
+function drawWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  {
+    color = "#334155",
+    font = "500 26px Noto Sans Thai, sans-serif",
+    maxLines = 4,
+  }: { color?: string; font?: string; maxLines?: number } = {},
+) {
+  ctx.fillStyle = color;
+  ctx.font = font;
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth || !current) {
+      current = next;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  });
+  if (current) lines.push(current);
+
+  lines.slice(0, maxLines).forEach((line, index) => {
+    ctx.fillText(index === maxLines - 1 && lines.length > maxLines ? `${line}...` : line, x, y + index * lineHeight);
+  });
+
+  return y + Math.min(lines.length, maxLines) * lineHeight;
+}
+
+function drawCenteredText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  {
+    color = "#064e3b",
+    font = "700 24px Noto Sans Thai, sans-serif",
+  }: { color?: string; font?: string } = {},
+) {
+  ctx.fillStyle = color;
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.fillText(text, x + width / 2, y);
+  ctx.textAlign = "start";
+}
+
+function drawReportHeader(ctx: CanvasRenderingContext2D, title = "รายงานแนวโน้มสุขภาพใจ") {
+  drawText(ctx, "KU Mind", 72, 58, { font: "800 28px Noto Sans Thai, sans-serif", color: "#059669" });
+  drawText(ctx, title, 72, 96, { font: "900 54px Noto Sans Thai, sans-serif", color: "#052e2b" });
+  drawText(ctx, `สร้างเมื่อ ${formatDateTime(new Date().toISOString())}`, 72, 166, {
+    font: "600 22px Noto Sans Thai, sans-serif",
+    color: "#0f766e",
+  });
+  drawWrappedText(
+    ctx,
+    "รายงานนี้สรุปจากข้อมูล check-in ของผู้ใช้งานเพื่อใช้ประกอบการพูดคุยกับ counselor หรืออาจารย์ที่ปรึกษา ไม่ใช่การวินิจฉัยทางการแพทย์",
+    72,
+    214,
+    1040,
+    32,
+    { font: "500 23px Noto Sans Thai, sans-serif", color: "#475569", maxLines: 2 },
+  );
+}
+
+function drawMetricCard(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  label: string,
+  value: string,
+  detail: string,
+) {
+  drawRoundRect(ctx, x, y, 255, 180, 24, "#ecfdf5", "#bbf7d0");
+  drawText(ctx, label, x + 24, y + 28, { font: "700 22px Noto Sans Thai, sans-serif", color: "#047857" });
+  drawText(ctx, value, x + 24, y + 68, { font: "900 42px Noto Sans Thai, sans-serif", color: "#052e2b" });
+  drawWrappedText(ctx, detail, x + 24, y + 124, 205, 26, {
+    font: "500 18px Noto Sans Thai, sans-serif",
+    color: "#0f766e",
+    maxLines: 2,
+  });
+}
+
+function drawCanvasTrendChart(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  title: string,
+  points: TrendPoint[],
+  max: number,
+  suffix: string,
+  color: string,
+) {
+  drawRoundRect(ctx, x, y, width, height, 24, "#ffffff", "#bbf7d0");
+  drawText(ctx, title, x + 26, y + 24, { font: "800 28px Noto Sans Thai, sans-serif", color: "#052e2b" });
+
+  const plotX = x + 46;
+  const plotY = y + 90;
+  const plotWidth = width - 92;
+  const plotHeight = height - 150;
+  const baseline = plotY + plotHeight;
+
+  ctx.strokeStyle = "#d1fae5";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 4; i += 1) {
+    const lineY = plotY + (plotHeight / 3) * i;
+    ctx.beginPath();
+    ctx.moveTo(plotX, lineY);
+    ctx.lineTo(plotX + plotWidth, lineY);
+    ctx.stroke();
+  }
+
+  const plotted = points
+    .map((point, index) => {
+      if (point.value === null) return null;
+      const px = plotX + (points.length === 1 ? 0 : (plotWidth / (points.length - 1)) * index);
+      const py = baseline - (Math.min(Math.max(point.value, 0), max) / max) * plotHeight;
+      return { ...point, x: px, y: py };
+    })
+    .filter((point): point is TrendPoint & { x: number; y: number } => point !== null);
+
+  if (plotted.length > 0) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    plotted.forEach((point, index) => {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
+
+    plotted.forEach((point) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 9, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      drawText(ctx, formatScore(point.value, suffix), point.x - 28, point.y - 44, {
+        font: "800 20px Noto Sans Thai, sans-serif",
+        color: "#064e3b",
+      });
+    });
+  }
+
+  points.forEach((point, index) => {
+    const px = plotX + (points.length === 1 ? 0 : (plotWidth / (points.length - 1)) * index);
+    drawText(ctx, point.label, px - 14, y + height - 42, {
+      font: "700 20px Noto Sans Thai, sans-serif",
+      color: "#047857",
+    });
+  });
+}
+
+function drawReportPageOne({
+  averageRisk,
+  averageMood,
+  averageSleep,
+  factorLabel,
+  factorValue,
+  latest,
+  moodTrend,
+  riskTrend,
+}: {
+  averageRisk: number | null;
+  averageMood: number | null;
+  averageSleep: number | null;
+  factorLabel: string;
+  factorValue: number | null;
+  latest: CheckInHistoryItem;
+  moodTrend: TrendPoint[];
+  riskTrend: TrendPoint[];
+}) {
+  const { canvas, ctx } = createReportCanvas();
+  drawReportHeader(ctx);
+  drawMetricCard(ctx, 72, 310, "คะแนนเสี่ยงเฉลี่ย 7 วัน", formatScore(averageRisk, "/100"), "ยิ่งต่ำยิ่งเบาใจ");
+  drawMetricCard(ctx, 352, 310, "อารมณ์เฉลี่ย", formatScore(averageMood, "/10"), "จาก check-in ใน 7 วันล่าสุด");
+  drawMetricCard(ctx, 632, 310, "การนอนเฉลี่ย", formatScore(averageSleep, " ชม."), "ดูร่วมกับคะแนนความเสี่ยง");
+  drawMetricCard(
+    ctx,
+    912,
+    310,
+    "ปัจจัยเด่นล่าสุด",
+    factorLabel,
+    factorValue === null ? "ยังไม่มีข้อมูล" : `${factorValue}% จาก check-in ล่าสุด`,
+  );
+
+  drawRoundRect(ctx, 72, 545, 1096, 270, 30, "#052e2b");
+  drawText(ctx, "LATEST CHECK-IN", 110, 586, { font: "800 24px Noto Sans Thai, sans-serif", color: "#a7f3d0" });
+  drawText(ctx, `ระดับความเสี่ยงล่าสุด: ${levelLabels[latest.risk_level]}`, 110, 634, {
+    font: "900 40px Noto Sans Thai, sans-serif",
+    color: "#ffffff",
+    maxWidth: 720,
+  });
+  drawWrappedText(ctx, latest.summary, 110, 702, 720, 34, {
+    font: "600 22px Noto Sans Thai, sans-serif",
+    color: "#ecfdf5",
+    maxLines: 3,
+  });
+
+  drawRoundRect(ctx, 880, 615, 230, 128, 26, "rgba(255,255,255,0.08)", "rgba(255,255,255,0.22)");
+  drawCenteredText(ctx, formatDateTime(latest.created_at), 895, 642, 200, {
+    font: "700 20px Noto Sans Thai, sans-serif",
+    color: "#d1fae5",
+  });
+  drawCenteredText(ctx, `${Math.round(latest.risk_score * 100)}/100`, 895, 662, 200, {
+    font: "900 48px Noto Sans Thai, sans-serif",
+    color: "#ffffff",
+  });
+
+  drawCanvasTrendChart(ctx, 72, 875, 520, 360, "คะแนนความเสี่ยงย้อนหลัง 7 วัน", riskTrend, 100, "%", metricColors.risk);
+  drawCanvasTrendChart(ctx, 648, 875, 520, 360, "Mood trend", moodTrend, 10, "/10", metricColors.mood);
+  drawText(ctx, "หน้า 1/2", 1075, 1678, { font: "600 18px Noto Sans Thai, sans-serif", color: "#64748b" });
+  return canvas;
+}
+
+function drawReportPageTwo({
+  deadlineTrend,
+  history,
+  sleepTrend,
+}: {
+  deadlineTrend: TrendPoint[];
+  history: CheckInHistoryItem[];
+  sleepTrend: TrendPoint[];
+}) {
+  const { canvas, ctx } = createReportCanvas();
+  drawReportHeader(ctx, "รายละเอียดแนวโน้มและประวัติ");
+  drawCanvasTrendChart(ctx, 72, 310, 520, 360, "Sleep trend", sleepTrend, 12, " ชม.", metricColors.sleep);
+  drawCanvasTrendChart(ctx, 648, 310, 520, 360, "Deadline trend", deadlineTrend, 20, "", metricColors.deadline);
+
+  drawText(ctx, "ประวัติล่าสุด", 72, 735, { font: "900 34px Noto Sans Thai, sans-serif", color: "#052e2b" });
+  history.slice(0, 8).forEach((item, index) => {
+    const y = 795 + index * 96;
+    drawRoundRect(ctx, 72, y, 1096, 74, 18, "#f0fdf4", "#bbf7d0");
+    drawText(ctx, formatDateTime(item.created_at), 100, y + 16, {
+      font: "800 22px Noto Sans Thai, sans-serif",
+      color: "#052e2b",
+    });
+    drawText(
+      ctx,
+      `งาน ${item.workload}/10 · นอน ${item.sleep_hours} ชม. · เหนื่อย ${item.fatigue}/10 · เดดไลน์ ${item.deadline_count}`,
+      100,
+      y + 44,
+      { font: "600 18px Noto Sans Thai, sans-serif", color: "#047857", maxWidth: 760 },
+    );
+    const pillColor = item.risk_level === "high" ? "#b91c1c" : item.risk_level === "medium" ? "#b45309" : "#047857";
+    drawRoundRect(ctx, 900, y + 16, 230, 42, 18, "#ffffff", "#bbf7d0");
+    drawCenteredText(ctx, `${levelLabels[item.risk_level]} · ${Math.round(item.risk_score * 100)}/100`, 900, y + 23, 230, {
+      font: "800 22px Noto Sans Thai, sans-serif",
+      color: pillColor,
+    });
+  });
+  drawText(ctx, "หน้า 2/2", 1075, 1678, { font: "600 18px Noto Sans Thai, sans-serif", color: "#64748b" });
+  return canvas;
+}
+
+function base64ToBytes(base64: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function buildPdfFromJpegs(images: Array<{ dataUrl: string; width: number; height: number }>) {
+  const encoder = new TextEncoder();
+  const chunks: ArrayBuffer[] = [];
+  const offsets: number[] = [];
+  let length = 0;
+
+  const append = (chunk: string | Uint8Array) => {
+    const bytes = typeof chunk === "string" ? encoder.encode(chunk) : chunk;
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    chunks.push(copy.buffer);
+    length += bytes.length;
+  };
+
+  const addObject = (id: number, parts: Array<string | Uint8Array>) => {
+    offsets[id] = length;
+    append(`${id} 0 obj\n`);
+    parts.forEach(append);
+    append("\nendobj\n");
+  };
+
+  append("%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n");
+
+  const pageIds = images.map((_, index) => 3 + index * 3);
+  addObject(1, ["<< /Type /Catalog /Pages 2 0 R >>"]);
+  addObject(2, [`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`]);
+
+  images.forEach((image, index) => {
+    const pageId = 3 + index * 3;
+    const imageId = pageId + 1;
+    const contentId = pageId + 2;
+    const imageBytes = base64ToBytes(image.dataUrl.split(",")[1] ?? "");
+    const content = `q\n595.28 0 0 841.89 0 0 cm\n/Im${index} Do\nQ\n`;
+
+    addObject(pageId, [
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${index} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`,
+    ]);
+    addObject(imageId, [
+      `<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`,
+      imageBytes,
+      "\nendstream",
+    ]);
+    addObject(contentId, [`<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream`]);
+  });
+
+  const xrefOffset = length;
+  append(`xref\n0 ${offsets.length}\n`);
+  append("0000000000 65535 f \n");
+  for (let id = 1; id < offsets.length; id += 1) {
+    append(`${String(offsets[id]).padStart(10, "0")} 00000 n \n`);
+  }
+  append(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+  return new Blob(chunks, { type: "application/pdf" });
+}
+
 export default function Insights() {
   const navigate = useNavigate();
   const [history, setHistory] = useState<CheckInHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const handleExportPdf = async () => {
+    if (history.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const pdf = await buildInsightsPdf({
+      averageRisk,
+      averageMood,
+      averageSleep,
+      deadlineTrend,
+      factorLabel: strongestFactor ? factorLabels[strongestFactor[0]] ?? strongestFactor[0] : "-",
+      factorValue: strongestFactor?.[1] ?? null,
+      history,
+      latest,
+      moodTrend,
+      riskTrend,
+      sleepTrend,
+    });
+    const url = URL.createObjectURL(pdf);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ku-mind-checkin-report-${today}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -323,14 +794,14 @@ export default function Insights() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#d9fff3_0%,_#e4fffb_38%,_#eaf7f7_100%)] px-4 py-6 text-emerald-950 md:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="insights-page min-h-screen bg-[radial-gradient(circle_at_top_left,_#d9fff3_0%,_#e4fffb_38%,_#eaf7f7_100%)] px-4 py-6 text-emerald-950 md:px-8">
+      <div className="print-report mx-auto max-w-7xl">
         <header className="mb-6 rounded-3xl border border-emerald-100 bg-white/80 p-5 shadow-xl shadow-emerald-100/70 backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate("/chat")}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-100 text-emerald-700 transition-colors hover:bg-emerald-50"
+                className="no-print flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-100 text-emerald-700 transition-colors hover:bg-emerald-50"
                 aria-label="กลับหน้าแชท"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -343,7 +814,17 @@ export default function Insights() {
                 <h1 className="text-2xl font-black text-emerald-950 md:text-4xl">แนวโน้มสุขภาพใจ</h1>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="no-print flex flex-wrap gap-2">
+              <button
+                onClick={handleExportPdf}
+                disabled={history.length === 0}
+                className="rounded-full bg-emerald-950 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-100 transition-all hover:-translate-y-0.5 hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  บันทึก PDF
+                </span>
+              </button>
               <button
                 onClick={() => navigate("/checkin")}
                 className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-100 transition-all hover:-translate-y-0.5 hover:bg-emerald-600"
@@ -357,6 +838,9 @@ export default function Insights() {
                 กลับไปคุย
               </button>
             </div>
+          </div>
+          <div className="print-only mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+            รายงานนี้สรุปจากข้อมูล check-in ของผู้ใช้งานใน KU Mind เพื่อใช้ประกอบการพูดคุยกับ counselor หรืออาจารย์ที่ปรึกษา ไม่ใช่การวินิจฉัยทางการแพทย์
           </div>
         </header>
 
@@ -423,18 +907,18 @@ export default function Insights() {
               />
             </section>
 
-            <section className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-950 p-6 text-white shadow-2xl shadow-emerald-200">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
+            <section className="mt-5 rounded-3xl border border-emerald-100 bg-emerald-950 p-6 text-white shadow-2xl shadow-emerald-200 md:p-8">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">Latest Check-in</p>
-                  <h2 className="mt-2 text-3xl font-black">
+                  <h2 className="mt-2 text-2xl font-black leading-tight md:text-3xl">
                     ระดับความเสี่ยงล่าสุด: {levelLabels[latest.risk_level]}
                   </h2>
-                  <p className="mt-2 max-w-3xl text-emerald-50">{latest.summary}</p>
+                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-emerald-50 md:text-base">{latest.summary}</p>
                 </div>
-                <div className="rounded-3xl bg-white/12 px-5 py-4 text-right ring-1 ring-white/15">
-                  <p className="text-sm text-emerald-100">{formatDateTime(latest.created_at)}</p>
-                  <p className="text-4xl font-black">{Math.round(latest.risk_score * 100)}/100</p>
+                <div className="flex w-full shrink-0 flex-col items-center justify-center rounded-3xl bg-white/12 px-6 py-5 text-center ring-1 ring-white/15 md:h-32 md:w-56">
+                  <p className="text-sm font-semibold text-emerald-100">{formatDateTime(latest.created_at)}</p>
+                  <p className="mt-2 text-4xl font-black leading-none md:text-5xl">{Math.round(latest.risk_score * 100)}/100</p>
                 </div>
               </div>
             </section>

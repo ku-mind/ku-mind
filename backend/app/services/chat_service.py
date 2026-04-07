@@ -246,7 +246,14 @@ class ChatService:
                 "title_suggestion": self._suggest_session_title(message, nlp_context, risk_context),
             }
         except (ValueError, httpx.HTTPStatusError, httpx.HTTPError) as exc:
-            logger.warning("Gemini response failed; using local fallback: %s", exc.__class__.__name__)
+            if isinstance(exc, httpx.HTTPStatusError):
+                logger.warning(
+                    "Gemini response failed; using local fallback: status=%s body=%s",
+                    exc.response.status_code,
+                    exc.response.text[:500],
+                )
+            else:
+                logger.warning("Gemini response failed; using local fallback: %s", exc.__class__.__name__)
             return {
                 "reply": self._build_local_support_reply(message, nlp_context),
                 "nlp_context": nlp_context,

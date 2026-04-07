@@ -14,3 +14,57 @@ body,
 body {
   font-family: "Noto Sans Thai", sans-serif;
 }
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+    size: A4 portrait;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: auto;
+    background: #ffffff !important;
+  }
+
+  body {
+    color: #052e2b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .insights-page {
+    min-height: auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .print-report {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .print-report header,
+  .print-report section,
+  .print-report > div {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .print-report svg {
+    max-height: 150px;
+  }
+}
