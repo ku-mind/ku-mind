@@ -267,7 +267,7 @@ export default function CheckIn() {
               <h1 className="text-3xl font-bold text-emerald-900">KU Mind</h1>
             </div>
             <p className="text-emerald-700 text-sm">
-              เช็กสภาพจิตโดยอ้างอิงข้อมูลจริง — ไม่ประมาณตัวอน เไม่มีการวินิจฉัย
+              เช็กสภาพจิตโดยอ้างอิงข้อมูลจริง — ไม่ตัดสินตัวตน เไม่มีการวินิจฉัย
             </p>
           </div>
 
@@ -443,7 +443,7 @@ export default function CheckIn() {
             <h1 className="text-3xl font-bold text-emerald-900">KU Mind</h1>
           </div>
           <p className="text-emerald-700">
-            เช็กสภาพจิตโดยอ้างอิงข้อมูลจริง — ไม่ประมาณตัวอน ไม่มีการวินิจฉัย
+            เช็กสภาพจิตโดยอ้างอิงข้อมูลจริง — ไม่ประมาณตัวตน ไม่มีการวินิจฉัย
           </p>
         </div>
 
