@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Brain,
@@ -194,6 +194,112 @@ function saveSessions(sessions: Session[]) {
 
 function hasUserMessages(messages: Message[]): boolean {
   return messages.some((message) => message.role === "user");
+}
+
+function renderInlineMarkdown(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const pattern = /(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*)/g;
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) {
+      nodes.push(text.slice(lastIndex, index));
+    }
+
+    nodes.push(
+      <strong key={`${index}-${match[0]}`} className="font-bold text-emerald-950">
+        {match[0].replace(/^\*{2,3}|\*{2,3}$/g, "")}
+      </strong>,
+    );
+    lastIndex = index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
+}
+
+function renderAssistantMessage(content: string): ReactNode[] {
+  const blocks: ReactNode[] = [];
+  const lines = content.split(/\r?\n/);
+  let paragraph: string[] = [];
+  let listItems: string[] = [];
+  let listType: "ordered" | "unordered" | null = null;
+
+  const flushParagraph = () => {
+    if (paragraph.length === 0) return;
+    const paragraphIndex = blocks.length;
+    blocks.push(
+      <p key={`p-${paragraphIndex}`}>
+        {paragraph.map((line, index) => (
+          <span key={`${paragraphIndex}-${index}`}>
+            {index > 0 && <br />}
+            {renderInlineMarkdown(line)}
+          </span>
+        ))}
+      </p>,
+    );
+    paragraph = [];
+  };
+
+  const flushList = () => {
+    if (!listType || listItems.length === 0) return;
+    const ListTag = listType === "ordered" ? "ol" : "ul";
+    blocks.push(
+      <ListTag
+        key={`list-${blocks.length}`}
+        className={`my-2 space-y-1 pl-5 ${listType === "ordered" ? "list-decimal" : "list-disc"}`}
+      >
+        {listItems.map((item, index) => (
+          <li key={`${index}-${item}`} className="pl-1">
+            {renderInlineMarkdown(item)}
+          </li>
+        ))}
+      </ListTag>,
+    );
+    listItems = [];
+    listType = null;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    if (/^\*{3,}$/.test(line)) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const orderedMatch = line.match(/^\d+[.)]\s+(.+)$/);
+    const unorderedMatch = line.match(/^(?:[-•]|\*{1,3})\s+(.+)$/);
+
+    if (orderedMatch || unorderedMatch) {
+      const nextType = orderedMatch ? "ordered" : "unordered";
+      flushParagraph();
+      if (listType && listType !== nextType) {
+        flushList();
+      }
+      listType = nextType;
+      listItems.push((orderedMatch?.[1] ?? unorderedMatch?.[1] ?? "").trim());
+      continue;
+    }
+
+    flushList();
+    paragraph.push(line);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return blocks.length > 0 ? blocks : [content];
 }
 
 const randomPick = (items: string[]) => items[Math.floor(Math.random() * items.length)];
@@ -753,7 +859,7 @@ export default function Chat() {
                           : "rounded-tl-sm border border-emerald-100 bg-white/95 text-emerald-900 shadow-[0_10px_30px_-20px_rgba(16,185,129,0.55)]"
                       }`}
                     >
-                      {message.content}
+                      {message.role === "assistant" ? renderAssistantMessage(message.content) : message.content}
                     </div>
                     {message.role === "assistant" && message.nlp && (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">

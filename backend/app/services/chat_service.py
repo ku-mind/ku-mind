@@ -26,6 +26,7 @@ Rules:
 - Do not provide medication, legal, or emergency instructions beyond encouraging professional help.
 - If the user mentions self-harm, suicide, harming others, or immediate danger, respond with empathy, clearly encourage contacting local emergency services or a trusted person right now, and suggest reaching a crisis hotline. Keep it supportive and direct.
 - Prefer short paragraphs.
+- When offering practical guidance, format the action steps as a Markdown list. Use numbered steps for ordered advice and bullets for grouped ideas.
 """.strip()
 
 
@@ -112,7 +113,7 @@ class ChatService:
         enhancements = [
             f"User message: {message}",
             "In your reply, start with an empathetic reflection of the user text using their own keywords.",
-            "Then provide a concrete, practical response with 2-3 short action steps.",
+            "Then provide a concrete, practical response with 3-4 short action steps formatted as a numbered Markdown list.",
             "Avoid only generic phrases like 'ฉันรับฟัง' โดยไม่มีเนื้อหาเจาะจง.",
         ]
 
@@ -133,7 +134,7 @@ class ChatService:
 
         # คำขอแผนดูแลใจให้ไม่หลุด
         if any(keyword in message.lower() for keyword in ["แผนดูแลใจ", "plan", "routine", "คืนนี้"]):
-            enhancements.append("The user asked for a simple wellness plan. Provide a clear three-step nighttime self-care plan.")
+            enhancements.append("The user asked for a simple wellness plan. Provide a clear numbered nighttime self-care plan.")
 
         if context["nlp_risk"] > 0.6:
             enhancements.append("The user may be experiencing higher levels of distress. Be particularly supportive and suggest professional resources if appropriate.")
